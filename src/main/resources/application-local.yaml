@@ -1,0 +1,14 @@
+# Perfil de arranque sin Docker. H2 no representa la persistencia final del informe.
+spring:
+  datasource:
+    url: jdbc:h2:mem:cravewallet;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  flyway:
+    enabled: false
+  h2:
+    console:
+      enabled: false
+server:
+  address: 127.0.0.1
