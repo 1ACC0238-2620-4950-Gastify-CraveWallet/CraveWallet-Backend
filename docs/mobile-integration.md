@@ -30,7 +30,7 @@ En el emulador de Android, el host de desarrollo normalmente se alcanza mediante
 del host o un despliegue HTTPS; `localhost` del teléfono apunta al propio teléfono.
 La configuración actual del backend escucha solo en el equipo local.
 
-## Diferencias que deben acordarse antes del CRUD
+## Diferencias que deben acordarse para integrar el CRUD
 
 | Tema | App actual | Diseño del informe |
 | --- | --- | --- |
@@ -44,4 +44,6 @@ La configuración actual del backend escucha solo en el equipo local.
 No se ampliaron silenciosamente los contratos para cubrir estas diferencias.
 El equipo debe actualizar el informe o ajustar la app de forma coherente. El
 backend de autenticación es independiente de Flutter/Kotlin y puede atender a
-ambos clientes. Suscripciones, Delivery y Premium siguen pendientes de implementar.
+ambos clientes. El [CRUD de suscripciones](subscriptions-api.md) ya está disponible,
+con PEN/USD y ciclos mensual/anual. Delivery, Premium y la conexión Android siguen
+pendientes de implementar.

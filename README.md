@@ -13,7 +13,12 @@ rotación, consulta/actualización del perfil en PEN y logout con revocación re
 La migración V1 crea usuarios y sesiones; las contraseñas se almacenan con BCrypt
 y los tokens de renovación como hash SHA-256, nunca como texto plano.
 
-**Todavía no implementa CRUD de Suscripciones/Delivery, cobros, cotizaciones,
+Implementa registro, listado, detalle, edición y cancelación local de suscripciones
+con propietario autenticado, historial y totales mensuales separados por moneda.
+Flyway V2 crea su persistencia; el baseline Free permite cinco registros activos.
+Ver el [contrato de suscripciones](docs/subscriptions-api.md).
+
+**Todavía no implementa CRUD de Delivery, cobros, cotizaciones,
 notificaciones ni resultados de los spikes.** No representa el 70 % de endpoints
 de TB1 ni una versión móvil integrada. Las rutas no implementadas están bloqueadas;
 no existe una cuenta de acceso predeterminada.
@@ -28,8 +33,8 @@ no existe una cuenta de acceso predeterminada.
    H2 en memoria y escucha solo en `127.0.0.1`, para arrancar sin Docker.
 
 H2 permite probar el arranque; **PostgreSQL es la base prevista para el producto**.
-Los datos locales de H2 se pierden al cerrar y sus pruebas no validan concurrencia
-ni comportamiento específico de PostgreSQL.
+Los datos locales de H2 se pierden al cerrar. Hay pruebas de concurrencia en H2;
+no validan el comportamiento específico de PostgreSQL.
 
 En PowerShell, con `JAVA_HOME` apuntando a JDK 21:
 
@@ -43,7 +48,7 @@ $env:JAVA_HOME = 'C:\Users\ANGHELO\.jdks\jdk-21.0.12.1+1'
 - Swagger local: <http://localhost:8080/swagger-ui.html>
 - OpenAPI: <http://localhost:8080/v3/api-docs>
 
-Swagger documenta los seis endpoints de autenticación y perfil. Las pruebas
+Swagger documenta autenticación, perfil y los cinco endpoints de suscripciones. Las pruebas
 comprueban registro, login, hashing, perfil por propietario, renovación,
 concurrencia de renovación, revocación y rechazo de tokens manipulados o vencidos.
 Ver los [contratos de autenticación](docs/auth-api.md) y las
@@ -98,8 +103,9 @@ Suscripciones y Gastos. Los contratos entre módulos deben ser explícitos.
 
 1. **TS01 / US01–US03, US33 — implementado:** registro, login, perfil y tokens;
    propietario desde la autenticación y revocación de la sesión al cerrar.
-2. **TS02 / US04–US11:** suscripciones, persistencia y portafolio; acordar antes las
-   reglas Free/Premium que condicionan el alta.
+2. **TS02 / US04–US11 — parcial:** CRUD de suscripciones y portafolio implementados;
+   faltan conversión a PEN, catálogo remoto e integración Android. Baseline Free
+   de cinco activas; las reglas Premium requieren confirmación e implementación.
 3. **SP01–SP04 / TS03–TS04:** investigar y probar cotización y recordatorios. El
    backend prepara datos; el calendario y sus permisos pertenecen al dispositivo.
 4. **TS05:** gastos y presupuesto, con deduplicación y actualización transaccional.
@@ -107,8 +113,11 @@ Suscripciones y Gastos. Los contratos entre módulos deben ser explícitos.
    webhook antes de cambiar acceso. El retorno de checkout no confirma el pago.
 
 El equipo debe confirmar el alcance oficial de TB1 y ajustar su Sprint Backlog.
-El límite Free, el tratamiento del exceso tras cancelar Premium, horarios de
-renovación y políticas de pago fallido siguen pendientes en el informe.
+El backend usa provisionalmente el límite Free de cinco activas de la app. El
+equipo debe confirmar esa regla, el tratamiento del exceso tras cancelar Premium,
+horarios de renovación y políticas de pago fallido. El alcance de entrega es
+70 % de lo exigido para TB1; estos bloques no certifican ese porcentaje hasta
+contrastar el inventario de endpoints con la rúbrica y el Sprint Backlog.
 
 ## Colaboración
 

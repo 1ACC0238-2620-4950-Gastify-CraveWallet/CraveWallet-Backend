@@ -11,6 +11,15 @@ import pe.edu.upc.gastify.cravewallet.iam.application.AuthFailure;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(pe.edu.upc.gastify.cravewallet.subscriptions.application.SubscriptionFailure.class)
+    ProblemDetail subscriptionFailure(pe.edu.upc.gastify.cravewallet.subscriptions.application.SubscriptionFailure failure) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(failure.status()), failure.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    ProblemDetail invalidValue() {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Datos de la solicitud no válidos.");
+    }
     @ExceptionHandler(AuthFailure.class)
     ProblemDetail authenticationFailure(AuthFailure failure) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(failure.status()), failure.getMessage());
