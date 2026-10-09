@@ -1,0 +1,32 @@
+# Optional Render deployment. Both resources explicitly use the free plan.
+services:
+  - type: web
+    name: cravewallet-api
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: feature/cloud-deployment
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        fromDatabase:
+          name: cravewallet-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: cravewallet-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+databases:
+  - name: cravewallet-db
+    plan: free
+    region: oregon
+    postgresMajorVersion: "17"
+    databaseName: cravewallet
+    user: cravewallet
+    ipAllowList: []
