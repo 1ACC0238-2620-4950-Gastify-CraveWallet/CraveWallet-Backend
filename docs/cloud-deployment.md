@@ -7,7 +7,8 @@ el perfil H2 local no debe utilizarse para la entrega pública.
 
 `Dockerfile` ejecuta `mvnw verify` y empaqueta el JAR con un runtime Java 21.
 El proceso se ejecuta sin privilegios de root. `prod` escucha en `0.0.0.0`,
-lee `PORT` y desactiva Swagger público. `/actuator/health` es la comprobación
+lee `PORT` y habilita Swagger público en `/swagger-ui/index.html` para la demostración TB1.
+La especificación OpenAPI está en `/v3/api-docs`. `/actuator/health` es la comprobación
 de disponibilidad; los recursos del usuario requieren Bearer JWT.
 
 Variables del servicio (solo en el proveedor, nunca en Git):

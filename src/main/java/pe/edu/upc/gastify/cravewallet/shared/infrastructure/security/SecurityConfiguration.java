@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -17,7 +16,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, Environment environment) throws Exception {
-        boolean localDocumentation = environment.acceptsProfiles(Profiles.of("local", "test", "postgres"));
+        boolean documentationEnabled = environment.getProperty("springdoc.api-docs.enabled", Boolean.class, true);
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(HttpMethod.GET, "/actuator/health").permitAll();
@@ -33,7 +32,7 @@ public class SecurityConfiguration {
                     authorize.requestMatchers(HttpMethod.POST, "/api/v1/delivery-expenses").authenticated();
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/delivery-expenses/summary").authenticated();
                     authorize.requestMatchers(HttpMethod.PUT, "/api/v1/delivery-expenses/budget").authenticated();
-                    if (localDocumentation) {
+                    if (documentationEnabled) {
                         authorize.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**").permitAll();
                     }

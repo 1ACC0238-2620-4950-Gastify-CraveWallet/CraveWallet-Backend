@@ -10,7 +10,8 @@ secciones 2.5 y 2.6.
 Servidor: **https://cravewallet-api.onrender.com**. Disponibilidad:
 <https://cravewallet-api.onrender.com/actuator/health>. Ejecuta el perfil `prod`
 con PostgreSQL 17 en Render; no requiere que la PC del equipo esté encendida.
-Swagger permanece disponible solo en desarrollo. La configuración y las
+Swagger está disponible en <https://cravewallet-api.onrender.com/swagger-ui/index.html>.
+Las operaciones del usuario conservan la autenticación Bearer JWT. La configuración y las
 [evidencias remotas](docs/cloud-deployment.md) están versionadas.
 
 ## Estado actual
@@ -94,7 +95,7 @@ para evitar cambios automáticos del esquema.
 
 Los perfiles `postgres` y `prod` exigen `JWT_SECRET` de al menos 32 bytes UTF-8.
 `prod` también exige `DATABASE_URL`, `DATABASE_USERNAME` y `DATABASE_PASSWORD`,
-y desactiva Swagger público. En `local`, si no se configura el secreto, se genera
+y habilita Swagger público para la demostración TB1. En `local`, si no se configura el secreto, se genera
 una clave aleatoria en memoria: los tokens anteriores no sirven tras reiniciar.
 El corte `67ede2a` está desplegado en Render con PostgreSQL 17 y HTTPS.
 Ver [publicación y resultados](docs/cloud-deployment.md).
