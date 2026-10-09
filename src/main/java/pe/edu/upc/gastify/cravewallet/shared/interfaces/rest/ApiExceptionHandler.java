@@ -11,6 +11,10 @@ import pe.edu.upc.gastify.cravewallet.iam.application.AuthFailure;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(pe.edu.upc.gastify.cravewallet.delivery.application.DeliveryFailure.class)
+    ProblemDetail deliveryFailure(pe.edu.upc.gastify.cravewallet.delivery.application.DeliveryFailure failure) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(failure.status()), failure.getMessage());
+    }
     @ExceptionHandler(pe.edu.upc.gastify.cravewallet.subscriptions.application.SubscriptionFailure.class)
     ProblemDetail subscriptionFailure(pe.edu.upc.gastify.cravewallet.subscriptions.application.SubscriptionFailure failure) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(failure.status()), failure.getMessage());

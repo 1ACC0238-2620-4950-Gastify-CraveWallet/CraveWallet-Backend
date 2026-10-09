@@ -18,7 +18,10 @@ con propietario autenticado, historial y totales mensuales separados por moneda.
 Flyway V2 crea su persistencia; el baseline Free permite cinco registros activos.
 Ver el [contrato de suscripciones](docs/subscriptions-api.md).
 
-**Todavía no implementa CRUD de Delivery, cobros, cotizaciones,
+Delivery implementa registro idempotente, resumen mensual y presupuesto, con
+acumulado transaccional. Ver [contrato de Delivery](docs/delivery-api.md).
+
+**Todavía no implementa edición/eliminación de Delivery, búsqueda de comercios, cobros, cotizaciones,
 notificaciones ni resultados de los spikes.** No representa el 70 % de endpoints
 de TB1 ni una versión móvil integrada. Las rutas no implementadas están bloqueadas;
 no existe una cuenta de acceso predeterminada.
@@ -108,7 +111,8 @@ Suscripciones y Gastos. Los contratos entre módulos deben ser explícitos.
    de cinco activas; las reglas Premium requieren confirmación e implementación.
 3. **SP01–SP04 / TS03–TS04:** investigar y probar cotización y recordatorios. El
    backend prepara datos; el calendario y sus permisos pertenecen al dispositivo.
-4. **TS05:** gastos y presupuesto, con deduplicación y actualización transaccional.
+4. **TS05 — parcial:** registro, resumen y presupuesto implementados, con
+   deduplicación y acumulado transaccional. Faltan edición, historial y app.
 5. **SP05–SP06 / TS06:** Stripe; verificar firma, correlación y deduplicación del
    webhook antes de cambiar acceso. El retorno de checkout no confirma el pago.
 

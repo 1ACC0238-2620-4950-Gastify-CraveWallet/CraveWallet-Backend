@@ -45,5 +45,5 @@ No se ampliaron silenciosamente los contratos para cubrir estas diferencias.
 El equipo debe actualizar el informe o ajustar la app de forma coherente. El
 backend de autenticación es independiente de Flutter/Kotlin y puede atender a
 ambos clientes. El [CRUD de suscripciones](subscriptions-api.md) ya está disponible,
-con PEN/USD y ciclos mensual/anual. Delivery, Premium y la conexión Android siguen
-pendientes de implementar.
+con PEN/USD y ciclos mensual/anual. [Delivery](delivery-api.md) ya dispone de
+registro, resumen y presupuesto. Premium y la conexión Android siguen pendientes.

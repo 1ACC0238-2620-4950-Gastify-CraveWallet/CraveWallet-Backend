@@ -29,6 +29,9 @@ public class SecurityConfiguration {
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/subscriptions", "/api/v1/subscriptions/*").authenticated();
                     authorize.requestMatchers(HttpMethod.POST, "/api/v1/subscriptions", "/api/v1/subscriptions/*/cancel").authenticated();
                     authorize.requestMatchers(HttpMethod.PATCH, "/api/v1/subscriptions/*").authenticated();
+                    authorize.requestMatchers(HttpMethod.POST, "/api/v1/delivery-expenses").authenticated();
+                    authorize.requestMatchers(HttpMethod.GET, "/api/v1/delivery-expenses/summary").authenticated();
+                    authorize.requestMatchers(HttpMethod.PUT, "/api/v1/delivery-expenses/budget").authenticated();
                     if (localDocumentation) {
                         authorize.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**").permitAll();
