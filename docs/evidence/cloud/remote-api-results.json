@@ -1,0 +1,184 @@
+{
+  "before-restart": [
+    {
+      "method": "GET",
+      "path": "/actuator/health",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/subscriptions",
+      "expected": 401,
+      "actual": 401
+    },
+    {
+      "method": "GET",
+      "path": "/v3/api-docs",
+      "expected": 401,
+      "actual": 401
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "expected": 201,
+      "actual": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/users/me",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/subscriptions",
+      "expected": 201,
+      "actual": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/subscriptions/f8f42282-f439-41fb-8fbb-a6743b7cb561",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/subscriptions/f8f42282-f439-41fb-8fbb-a6743b7cb561",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/subscriptions/f8f42282-f439-41fb-8fbb-a6743b7cb561/reminder",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/subscriptions",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/exchange-rate?from=USD&to=PEN",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/delivery-expenses/budget",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/delivery-expenses",
+      "expected": 201,
+      "actual": 201
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/delivery-expenses",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/delivery-expenses/summary?year=2026&month=10",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "expected": 201,
+      "actual": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/subscriptions/f8f42282-f439-41fb-8fbb-a6743b7cb561",
+      "expected": 404,
+      "actual": 404
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "expected": 204,
+      "actual": 204
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "expected": 401,
+      "actual": 401
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "expected": 200,
+      "actual": 200
+    }
+  ],
+  "baseUrl": "https://cravewallet-api.onrender.com",
+  "date": "2026-10-09T00:02:32.813254-05:00",
+  "environment": "Render prod / PostgreSQL 17",
+  "credentialsIncluded": false,
+  "after-restart": [
+    {
+      "method": "GET",
+      "path": "/actuator/health",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/subscriptions/f8f42282-f439-41fb-8fbb-a6743b7cb561",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/delivery-expenses/summary?year=2026&month=10",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/subscriptions/f8f42282-f439-41fb-8fbb-a6743b7cb561/cancel",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "expected": 204,
+      "actual": 204
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "expected": 401,
+      "actual": 401
+    }
+  ]
+}

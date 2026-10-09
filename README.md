@@ -5,6 +5,14 @@ Base del backend de Gastify, preparada para IntelliJ IDEA con Java 21, Spring Bo
 [informe del equipo](https://github.com/1ACC0238-2620-4950-Gastify-CraveWallet/CraveWallet-Report/blob/develop/docs/chapter_2.md),
 secciones 2.5 y 2.6.
 
+## API pública
+
+Servidor: **https://cravewallet-api.onrender.com**. Disponibilidad:
+<https://cravewallet-api.onrender.com/actuator/health>. Ejecuta el perfil `prod`
+con PostgreSQL 17 en Render; no requiere que la PC del equipo esté encendida.
+Swagger permanece disponible solo en desarrollo. La configuración y las
+[evidencias remotas](docs/cloud-deployment.md) están versionadas.
+
 ## Estado actual
 
 El proyecto arranca, comprueba su estado en `/actuator/health` y ofrece Swagger
@@ -27,7 +35,7 @@ recordatorio están implementados. Ver [contrato](docs/exchange-and-reminders-ap
 **Todavía no implementa edición/eliminación de Delivery, búsqueda de comercios,
 cobros, envío de notificaciones ni resultados de los spikes.** Hay 16 de las 22
 rutas del [inventario de trabajo](docs/tb1-endpoint-coverage.md) (72.7 % por cantidad); esto no acredita el 70 %
-de toda la entrega ni una versión móvil integrada. Las rutas pendientes están bloqueadas;
+de toda la entrega por sí solo el alcance completo de la integración móvil. Las rutas pendientes están bloqueadas;
 no existe una cuenta de acceso predeterminada.
 
 ## Abrir en IntelliJ
@@ -88,7 +96,8 @@ Los perfiles `postgres` y `prod` exigen `JWT_SECRET` de al menos 32 bytes UTF-8.
 `prod` también exige `DATABASE_URL`, `DATABASE_USERNAME` y `DATABASE_PASSWORD`,
 y desactiva Swagger público. En `local`, si no se configura el secreto, se genera
 una clave aleatoria en memoria: los tokens anteriores no sirven tras reiniciar.
-El despliegue no está realizado.
+El corte `67ede2a` está desplegado en Render con PostgreSQL 17 y HTTPS.
+Ver [publicación y resultados](docs/cloud-deployment.md).
 
 ## Organización del código
 
@@ -112,12 +121,12 @@ Suscripciones y Gastos. Los contratos entre módulos deben ser explícitos.
 1. **TS01 / US01–US03, US33 — implementado:** registro, login, perfil y tokens;
    propietario desde la autenticación y revocación de la sesión al cerrar.
 2. **TS02 / US04–US11:** CRUD, portafolio y conversión a PEN implementados;
-   faltan catálogo remoto e integración Android. Baseline Free
+   falta catálogo remoto; el cliente Android ya consume estos contratos. Baseline Free
    de cinco activas; las reglas Premium requieren confirmación e implementación.
 3. **TS03–TS04:** cotización y datos de recordatorios implementados. SP01–SP04
    siguen pendientes como investigación documentada. Calendario en el dispositivo.
 4. **TS05 — parcial:** registro, resumen y presupuesto implementados, con
-   deduplicación y acumulado transaccional. Faltan edición, historial y app.
+   deduplicación y acumulado transaccional. Faltan edición e historial; la app integra registro, resumen y presupuesto.
 5. **SP05–SP06 / TS06:** Stripe; verificar firma, correlación y deduplicación del
    webhook antes de cambiar acceso. El retorno de checkout no confirma el pago.
 

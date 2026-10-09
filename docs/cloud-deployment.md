@@ -47,3 +47,20 @@ Compilar Android con `-PAPI_BASE_URL=https://URL_REAL_DEL_API` y verificar sus
 pruebas contra esa dirección. No sustituirla por la URL de la landing.
 La publicación queda acreditada cuando la URL responde y los flujos remotos
 se ejecutan; los archivos de configuración por sí solos no prueban el despliegue.
+
+## Despliegue verificado
+
+- URL HTTPS: <https://cravewallet-api.onrender.com>.
+- Corte publicado: `67ede2ae8c2b9cb02bb8151f5a163344a7ef3d4f`.
+- Entorno: Render Free, Oregon, perfil `prod`, PostgreSQL 17; Flyway V1–V3.
+- [Resultados HTTP remotos](evidence/cloud/remote-api-results.json): 22 comprobaciones antes del reinicio y siete después. Registro, login, aislamiento entre propietarios, renovación, suscripciones, cotización, presupuesto y deduplicación de Delivery.
+- [Captura real del evento de reinicio](evidence/cloud/render-restart.png).
+- Tras el reinicio solicitado en Render se conservaron la sesión, la suscripción editada y el presupuesto/gasto; logout revocó el acceso.
+- [Captura real del servicio Live](evidence/cloud/render-live.png).
+- La base gratuita muestra vencimiento el **7 de noviembre de 2026** en el panel. Su acceso externo se bloqueó; el API utiliza la red interna.
+
+El cliente Android se probó contra este HTTPS con su suite de integración. Las
+pruebas de interfaz usan Robolectric y no sustituyen la verificación en un
+celular de permisos, calendario y notificaciones. Premium y búsqueda de comercios
+continúan fuera del incremento implementado; este despliegue publica las 16 rutas
+existentes, sin atribuir funciones nuevas.
