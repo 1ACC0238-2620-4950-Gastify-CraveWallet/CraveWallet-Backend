@@ -7,11 +7,12 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
-/** Deniega la API hasta implementar TS01; no proporciona un usuario ficticio. */
+/** API con Bearer JWT; sin login por formulario, cookies ni sesiones HTTP. */
 @Configuration
 public class SecurityConfiguration {
     @Bean
@@ -20,6 +21,11 @@ public class SecurityConfiguration {
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(HttpMethod.GET, "/actuator/health").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/register",
+                            "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated();
+                    authorize.requestMatchers(HttpMethod.GET, "/api/v1/users/me").authenticated();
+                    authorize.requestMatchers(HttpMethod.PATCH, "/api/v1/users/me").authenticated();
                     if (localDocumentation) {
                         authorize.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**").permitAll();
@@ -28,7 +34,8 @@ public class SecurityConfiguration {
                 })
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(
                         (request, response, exception) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
-                .csrf(Customizer.withDefaults());
+                .oauth2ResourceServer(resource -> resource.jwt(Customizer.withDefaults()))
+                .csrf(AbstractHttpConfigurer::disable);
         return http.build();
     }
 }

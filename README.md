@@ -8,14 +8,15 @@ secciones 2.5 y 2.6.
 ## Estado actual
 
 El proyecto arranca, comprueba su estado en `/actuator/health` y ofrece Swagger
-local. Incluye configuración para PostgreSQL, JPA, Flyway, validación, seguridad y
-pruebas de arranque. Las carpetas de las capas contienen documentación de sus
-responsabilidades para orientar el trabajo del equipo.
+local. Implementa TS01: registro, login, JWT de acceso, token de renovación con
+rotación, consulta/actualización del perfil en PEN y logout con revocación real.
+La migración V1 crea usuarios y sesiones; las contraseñas se almacenan con BCrypt
+y los tokens de renovación como hash SHA-256, nunca como texto plano.
 
-**Todavía no implementa autenticación JWT, CRUD de negocio, cobros, cotizaciones,
+**Todavía no implementa CRUD de Suscripciones/Delivery, cobros, cotizaciones,
 notificaciones ni resultados de los spikes.** No representa el 70 % de endpoints
-de TB1 ni una versión móvil integrada. Las rutas de negocio están bloqueadas
-hasta desarrollar TS01; no existe una cuenta de acceso predeterminada.
+de TB1 ni una versión móvil integrada. Las rutas no implementadas están bloqueadas;
+no existe una cuenta de acceso predeterminada.
 
 ## Abrir en IntelliJ
 
@@ -42,8 +43,11 @@ $env:JAVA_HOME = 'C:\Users\ANGHELO\.jdks\jdk-21.0.12.1+1'
 - Swagger local: <http://localhost:8080/swagger-ui.html>
 - OpenAPI: <http://localhost:8080/v3/api-docs>
 
-Swagger no contiene operaciones de negocio hasta implementar sus controladores.
-La prueba de seguridad comprueba que una consulta no autenticada se rechaza.
+Swagger documenta los seis endpoints de autenticación y perfil. Las pruebas
+comprueban registro, login, hashing, perfil por propietario, renovación,
+concurrencia de renovación, revocación y rechazo de tokens manipulados o vencidos.
+Ver los [contratos de autenticación](docs/auth-api.md) y las
+[observaciones de integración móvil](docs/mobile-integration.md).
 
 ## PostgreSQL local
 
@@ -55,20 +59,23 @@ Copy-Item .env.example .env
 docker compose up -d
 # Usar en DATABASE_PASSWORD la misma contraseña que configuraron en .env.
 $env:DATABASE_PASSWORD = 'tu-password-local'
+$env:JWT_SECRET = 'reemplazar-por-un-secreto-aleatorio-de-al-menos-32-bytes'
 .\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=postgres'
 ```
 
 Compose lee `.env` para el contenedor. Spring Boot lee las variables de su proceso;
 no carga `.env` automáticamente. Si cambian puerto, usuario o nombre de la base,
 definir también `DATABASE_URL` y `DATABASE_USERNAME` en IntelliJ o PowerShell.
-Nunca subir `.env` ni credenciales a Git. Todavía no existen entidades ni
-migraciones de negocio; añadir migraciones versionadas en
+Nunca subir `.env` ni credenciales a Git. La migración V1 corresponde a IAM;
+añadir las migraciones de los tres contextos de negocio en
 `src/main/resources/db/migration` junto con cada funcionalidad. JPA usa `validate`
 para evitar cambios automáticos del esquema.
 
-El perfil `prod` exige `DATABASE_URL`, `DATABASE_USERNAME` y `DATABASE_PASSWORD`;
-desactiva Swagger público. La autenticación y el despliegue deben completarse
-antes de exponer funcionalidades a usuarios.
+Los perfiles `postgres` y `prod` exigen `JWT_SECRET` de al menos 32 bytes UTF-8.
+`prod` también exige `DATABASE_URL`, `DATABASE_USERNAME` y `DATABASE_PASSWORD`,
+y desactiva Swagger público. En `local`, si no se configura el secreto, se genera
+una clave aleatoria en memoria: los tokens anteriores no sirven tras reiniciar.
+El despliegue no está realizado.
 
 ## Organización del código
 
@@ -89,8 +96,8 @@ Suscripciones y Gastos. Los contratos entre módulos deben ser explícitos.
 
 ## Orden propuesto de implementación
 
-1. **TS01 / US01–US03, US33:** registro, login, perfil y token; obtener el propietario
-   desde la autenticación y comprobar autorización en cada recurso.
+1. **TS01 / US01–US03, US33 — implementado:** registro, login, perfil y tokens;
+   propietario desde la autenticación y revocación de la sesión al cerrar.
 2. **TS02 / US04–US11:** suscripciones, persistencia y portafolio; acordar antes las
    reglas Free/Premium que condicionan el alta.
 3. **SP01–SP04 / TS03–TS04:** investigar y probar cotización y recordatorios. El

@@ -24,11 +24,11 @@ class BackendBootstrapTest {
     }
 
     @Test
-    void localOpenApiIsAvailableWithoutClaimingBusinessEndpoints() throws Exception {
+    void localOpenApiDocumentsAuthenticationEndpoints() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value("CraveWallet Backend"))
-                .andExpect(jsonPath("$.paths").isEmpty());
+                .andExpect(jsonPath("$.paths['/api/v1/auth/register'].post").exists());
     }
 
     @Test

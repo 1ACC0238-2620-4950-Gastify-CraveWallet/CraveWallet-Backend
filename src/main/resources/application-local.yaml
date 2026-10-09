@@ -6,7 +6,7 @@ spring:
     username: sa
     password: ""
   flyway:
-    enabled: false
+    enabled: true
   h2:
     console:
       enabled: false
