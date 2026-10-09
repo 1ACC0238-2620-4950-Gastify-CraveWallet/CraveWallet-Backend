@@ -18,6 +18,8 @@ public class DeliveryController {
     private final DeliveryApplicationService service;
     public DeliveryController(DeliveryApplicationService service) { this.service = service; }
     @PostMapping
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Gasto registrado")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Reintento reconocido")
     public ResponseEntity<ExpenseResource> register(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RegisterRequest request) {
         if (request.expenseDate().getYear() < 1900 || request.expenseDate().getYear() > 9999)
             throw new DeliveryFailure(400, "Año fuera de rango.");
@@ -46,6 +48,7 @@ public class DeliveryController {
         return YearMonth.of(year, month);
     }
     private UUID owner(Jwt jwt) { return UUID.fromString(jwt.getSubject()); }
+    @io.swagger.v3.oas.annotations.media.Schema(name = "DeliveryRegisterRequest")
     public record RegisterRequest(@NotNull UUID requestId, @NotBlank @Size(max = 100) String merchant,
                                   @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 10, fraction = 2) BigDecimal amount,
                                   @NotBlank @Size(max = 60) String category, @NotNull LocalDate expenseDate) { }

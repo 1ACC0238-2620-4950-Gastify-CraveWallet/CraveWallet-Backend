@@ -27,6 +27,7 @@ public class SecurityConfiguration {
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/users/me").authenticated();
                     authorize.requestMatchers(HttpMethod.PATCH, "/api/v1/users/me").authenticated();
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/subscriptions", "/api/v1/subscriptions/*").authenticated();
+                    authorize.requestMatchers(HttpMethod.GET, "/api/v1/exchange-rate", "/api/v1/subscriptions/*/reminder").authenticated();
                     authorize.requestMatchers(HttpMethod.POST, "/api/v1/subscriptions", "/api/v1/subscriptions/*/cancel").authenticated();
                     authorize.requestMatchers(HttpMethod.PATCH, "/api/v1/subscriptions/*").authenticated();
                     authorize.requestMatchers(HttpMethod.POST, "/api/v1/delivery-expenses").authenticated();

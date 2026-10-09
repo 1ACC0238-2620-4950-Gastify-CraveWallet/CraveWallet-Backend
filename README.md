@@ -21,9 +21,13 @@ Ver el [contrato de suscripciones](docs/subscriptions-api.md).
 Delivery implementa registro idempotente, resumen mensual y presupuesto, con
 acumulado transaccional. Ver [contrato de Delivery](docs/delivery-api.md).
 
-**Todavía no implementa edición/eliminación de Delivery, búsqueda de comercios, cobros, cotizaciones,
-notificaciones ni resultados de los spikes.** No representa el 70 % de endpoints
-de TB1 ni una versión móvil integrada. Las rutas no implementadas están bloqueadas;
+Cotización USD/PEN con caché, conversión del resumen a soles y datos para el
+recordatorio están implementados. Ver [contrato](docs/exchange-and-reminders-api.md).
+
+**Todavía no implementa edición/eliminación de Delivery, búsqueda de comercios,
+cobros, envío de notificaciones ni resultados de los spikes.** Hay 16 de las 22
+rutas del [inventario de trabajo](docs/tb1-endpoint-coverage.md) (72.7 % por cantidad); esto no acredita el 70 %
+de toda la entrega ni una versión móvil integrada. Las rutas pendientes están bloqueadas;
 no existe una cuenta de acceso predeterminada.
 
 ## Abrir en IntelliJ
@@ -51,7 +55,8 @@ $env:JAVA_HOME = 'C:\Users\ANGHELO\.jdks\jdk-21.0.12.1+1'
 - Swagger local: <http://localhost:8080/swagger-ui.html>
 - OpenAPI: <http://localhost:8080/v3/api-docs>
 
-Swagger documenta autenticación, perfil y los cinco endpoints de suscripciones. Las pruebas
+Swagger documenta los 16 endpoints de autenticación, perfil, suscripciones,
+cotización y Delivery. Las pruebas
 comprueban registro, login, hashing, perfil por propietario, renovación,
 concurrencia de renovación, revocación y rechazo de tokens manipulados o vencidos.
 Ver los [contratos de autenticación](docs/auth-api.md) y las
@@ -106,11 +111,11 @@ Suscripciones y Gastos. Los contratos entre módulos deben ser explícitos.
 
 1. **TS01 / US01–US03, US33 — implementado:** registro, login, perfil y tokens;
    propietario desde la autenticación y revocación de la sesión al cerrar.
-2. **TS02 / US04–US11 — parcial:** CRUD de suscripciones y portafolio implementados;
-   faltan conversión a PEN, catálogo remoto e integración Android. Baseline Free
+2. **TS02 / US04–US11:** CRUD, portafolio y conversión a PEN implementados;
+   faltan catálogo remoto e integración Android. Baseline Free
    de cinco activas; las reglas Premium requieren confirmación e implementación.
-3. **SP01–SP04 / TS03–TS04:** investigar y probar cotización y recordatorios. El
-   backend prepara datos; el calendario y sus permisos pertenecen al dispositivo.
+3. **TS03–TS04:** cotización y datos de recordatorios implementados. SP01–SP04
+   siguen pendientes como investigación documentada. Calendario en el dispositivo.
 4. **TS05 — parcial:** registro, resumen y presupuesto implementados, con
    deduplicación y acumulado transaccional. Faltan edición, historial y app.
 5. **SP05–SP06 / TS06:** Stripe; verificar firma, correlación y deduplicación del

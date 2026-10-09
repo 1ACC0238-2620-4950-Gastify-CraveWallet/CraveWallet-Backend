@@ -47,3 +47,8 @@ backend de autenticación es independiente de Flutter/Kotlin y puede atender a
 ambos clientes. El [CRUD de suscripciones](subscriptions-api.md) ya está disponible,
 con PEN/USD y ciclos mensual/anual. [Delivery](delivery-api.md) ya dispone de
 registro, resumen y presupuesto. Premium y la conexión Android siguen pendientes.
+
+El resumen de suscripciones ya agrega conversión PEN con disponibilidad y fecha
+de cotización; el [endpoint de recordatorio](exchange-and-reminders-api.md) prepara
+datos del evento. Android debe conservar los importes originales, mostrar la
+atribución del proveedor y distinguir datos antiguos/no disponibles.

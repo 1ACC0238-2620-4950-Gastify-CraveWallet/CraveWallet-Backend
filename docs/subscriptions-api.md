@@ -11,6 +11,7 @@ Una suscripción ajena devuelve 404 tanto al consultar como al editar o cancelar
 | GET | `/api/v1/subscriptions/{id}` | 200; detalle propio |
 | PATCH | `/api/v1/subscriptions/{id}` | 200; modificar importe, categoría o fecha |
 | POST | `/api/v1/subscriptions/{id}/cancel` | 200; cancelación local idempotente |
+| GET | `/api/v1/subscriptions/{id}/reminder` | 200; datos para el aviso del dispositivo |
 
 ## Alta
 
@@ -38,13 +39,15 @@ enviar este mismo contrato con los campos precompletados.
 
 ## Listado y resumen
 
-Devuelve `{ "items": [...], "monthlyTotalsByCurrency": { "PEN": 29.90 } }`.
+Devuelve items, monthlyTotalsByCurrency, monthlyTotalPen, conversionAvailable
+y exchangeRate. Ver [cotización y recordatorios](exchange-and-reminders-api.md).
 Filtros opcionales: `status=ACTIVE|CANCELLED`, `search` sobre el nombre y `category`
 exacta, sin distinguir mayúsculas. Orden: fecha de renovación y UUID. El resumen
 corresponde a los resultados filtrados activos. Anuales se dividen entre doce;
 la suma se redondea a dos decimales. Es una estimación mensual, no un historial
-de cargos pagados. Las monedas se suman por separado; USD no se convierte a PEN.
-El historial cancelado tiene resumen vacío.
+de cargos pagados. El desglose separa monedas y monthlyTotalPen convierte USD con
+cotización fechada. Si no está disponible conserva los originales y devuelve
+total PEN null. El historial cancelado tiene desglose vacío y total cero.
 
 ## Edición y cancelación
 
@@ -78,8 +81,8 @@ no se almacena dinero usando float/double.
 
 La app Kotlin deberá mapear `MENSUAL` a `MONTHLY`, `ANUAL` a `ANNUAL` y sus estados
 locales a ACTIVE/CANCELLED. EUR y trimestral siguen fuera del contrato del informe.
-No se modificó ni conectó Android. Cotizaciones, recordatorios, calendario,
-Delivery y cobros Premium siguen pendientes; este bloque no completa todo TS02.
+No se modificó ni conectó Android. Cotización, datos del recordatorio y registro/
+presupuesto de Delivery ya existen. Calendario móvil y cobros Premium pendientes.
 
 `SubscriptionIntegrationTest` verifica aislamiento entre cuentas, validaciones,
 edición, historial, cancelación repetida, reutilización de cupo, filtros, totales

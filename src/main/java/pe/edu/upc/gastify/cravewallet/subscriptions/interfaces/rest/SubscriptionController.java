@@ -8,6 +8,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import pe.edu.upc.gastify.cravewallet.subscriptions.application.SubscriptionApplicationService;
+import pe.edu.upc.gastify.cravewallet.subscriptions.application.ExchangeRateService;
+import pe.edu.upc.gastify.cravewallet.subscriptions.application.SubscriptionFailure;
 import pe.edu.upc.gastify.cravewallet.subscriptions.domain.model.Subscription;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -21,9 +23,11 @@ import java.util.*;
 @SecurityRequirement(name = "bearerAuth")
 public class SubscriptionController {
     private final SubscriptionApplicationService service;
-    public SubscriptionController(SubscriptionApplicationService service) { this.service = service; }
+    private final ExchangeRateService exchange;
+    public SubscriptionController(SubscriptionApplicationService service, ExchangeRateService exchange) { this.service = service; this.exchange = exchange; }
 
     @PostMapping
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Suscripción registrada")
     public ResponseEntity<Resource> register(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RegisterRequest request) {
         Subscription result = service.register(owner(jwt), request.name(), request.amount(), request.currency(),
                 request.category(), request.billingCycle(), request.nextBillingDate());
@@ -42,8 +46,20 @@ public class SubscriptionController {
                     ? s.amount().divide(BigDecimal.valueOf(12), 8, RoundingMode.HALF_UP) : s.amount();
             monthly.merge(s.currency(), normalized, BigDecimal::add);
         }
+        BigDecimal totalPen = monthly.getOrDefault(Subscription.Currency.PEN, BigDecimal.ZERO);
+        ExchangeRateService.Rate rate = null;
+        boolean conversionAvailable = true;
+        if (monthly.containsKey(Subscription.Currency.USD)) {
+            try {
+                rate = exchange.quote(Subscription.Currency.USD, Subscription.Currency.PEN);
+                totalPen = totalPen.add(monthly.get(Subscription.Currency.USD).multiply(rate.rate()));
+            } catch (SubscriptionFailure unavailable) {
+                totalPen = null; conversionAvailable = false;
+            }
+        }
         monthly.replaceAll((currency, value) -> value.setScale(2, RoundingMode.HALF_UP));
-        return new Portfolio(items.stream().map(Resource::from).toList(), monthly);
+        return new Portfolio(items.stream().map(Resource::from).toList(), monthly,
+                totalPen == null ? null : totalPen.setScale(2, RoundingMode.HALF_UP), conversionAvailable, rate);
     }
 
     @GetMapping("/{id}")
@@ -61,7 +77,17 @@ public class SubscriptionController {
         return Resource.from(service.cancel(owner(jwt), id));
     }
 
+    @GetMapping("/{id}/reminder")
+    public ReminderResource reminder(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        Subscription s = service.detail(owner(jwt), id);
+        if (s.status() != Subscription.Status.ACTIVE) throw new SubscriptionFailure(409, "Una suscripción cancelada no genera recordatorios.");
+        var billingAt = s.nextBillingDate().atStartOfDay(java.time.ZoneId.of("America/Lima"));
+        return new ReminderResource("Renovación: " + s.name(), billingAt.minusHours(24).toInstant(),
+                billingAt.toInstant(), "America/Lima", "Revisa la renovación de " + s.name() + ": " + s.amount() + " " + s.currency());
+    }
+
     private UUID owner(Jwt jwt) { return UUID.fromString(jwt.getSubject()); }
+    @io.swagger.v3.oas.annotations.media.Schema(name = "SubscriptionRegisterRequest")
     public record RegisterRequest(@NotBlank @Size(max = 100) String name,
                                   @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal amount,
                                   @NotNull Subscription.Currency currency,
@@ -77,5 +103,7 @@ public class SubscriptionController {
         static Resource from(Subscription s) { return new Resource(s.id(), s.name(), s.amount(), s.currency(),
                 s.category(), s.billingCycle(), s.nextBillingDate(), s.status(), s.cancelledAt()); }
     }
-    public record Portfolio(List<Resource> items, Map<Subscription.Currency, BigDecimal> monthlyTotalsByCurrency) { }
+    public record Portfolio(List<Resource> items, Map<Subscription.Currency, BigDecimal> monthlyTotalsByCurrency,
+                            BigDecimal monthlyTotalPen, boolean conversionAvailable, ExchangeRateService.Rate exchangeRate) { }
+    public record ReminderResource(String title, Instant reminderAt, Instant billingAt, String timeZone, String description) { }
 }

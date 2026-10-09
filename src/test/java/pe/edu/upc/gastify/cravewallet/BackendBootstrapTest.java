@@ -28,7 +28,11 @@ class BackendBootstrapTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value("CraveWallet Backend"))
-                .andExpect(jsonPath("$.paths['/api/v1/auth/register'].post").exists());
+                .andExpect(jsonPath("$.paths['/api/v1/auth/register'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/subscriptions'].post.responses['201']").exists())
+                .andExpect(jsonPath("$.components.schemas.SubscriptionRegisterRequest.properties.name").exists())
+                .andExpect(jsonPath("$.components.schemas.DeliveryRegisterRequest.properties.merchant").exists())
+                .andExpect(jsonPath("$.components.schemas.DeliveryRegisterRequest.properties.name").doesNotExist());
     }
 
     @Test

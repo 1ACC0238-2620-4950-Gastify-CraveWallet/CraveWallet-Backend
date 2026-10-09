@@ -8,6 +8,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.BeforeEach;
+import pe.edu.upc.gastify.cravewallet.subscriptions.domain.services.ExchangeRatePort;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.*;
@@ -20,6 +25,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SubscriptionIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @MockitoBean ExchangeRatePort provider;
+    @BeforeEach void rateFixture() {
+        org.mockito.Mockito.when(provider.fetchUsdToPen()).thenReturn(new ExchangeRatePort.ProviderRate(new BigDecimal("3.75"), Instant.now()));
+    }
     private static final String ROOT = "/api/v1/subscriptions";
 
     @Test
@@ -93,10 +102,36 @@ class SubscriptionIntegrationTest {
         annual.put("amount", 120); annual.put("name", "Cloud"); annual.put("category", "Trabajo");
         create(token, annual);
         mvc.perform(get(ROOT).header("Authorization", token)).andExpect(jsonPath("$.monthlyTotalsByCurrency.PEN").value(12))
-                .andExpect(jsonPath("$.monthlyTotalsByCurrency.USD").value(10));
+                .andExpect(jsonPath("$.monthlyTotalsByCurrency.USD").value(10))
+                .andExpect(jsonPath("$.monthlyTotalPen").value(49.5)).andExpect(jsonPath("$.conversionAvailable").value(true));
         mvc.perform(get(ROOT).param("search", "clO").param("category", "trabajo").header("Authorization", token))
                 .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].name").value("Cloud"))
                 .andExpect(jsonPath("$.monthlyTotalsByCurrency.PEN").doesNotExist());
+    }
+
+    @Test
+    void remindersBelongToOwnerAndRepresent24HoursBeforeRenewal() throws Exception {
+        String token = account(), other = account();
+        String id = create(token, body()).get("id").asText();
+        JsonNode reminder = json.readTree(mvc.perform(get(ROOT + "/" + id + "/reminder").header("Authorization", token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.timeZone").value("America/Lima"))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(java.time.Duration.between(Instant.parse(reminder.get("reminderAt").asText()),
+                Instant.parse(reminder.get("billingAt").asText()))).isEqualTo(java.time.Duration.ofHours(24));
+        mvc.perform(get(ROOT + "/" + id + "/reminder").header("Authorization", other)).andExpect(status().isNotFound());
+        mvc.perform(get(ROOT + "/" + id + "/reminder")).andExpect(status().isUnauthorized());
+        mvc.perform(post(ROOT + "/" + id + "/cancel").header("Authorization", token)).andExpect(status().isOk());
+        mvc.perform(get(ROOT + "/" + id + "/reminder").header("Authorization", token)).andExpect(status().isConflict());
+    }
+
+    @Test
+    void exchangeEndpointRequiresSessionAndValidCurrencies() throws Exception {
+        mvc.perform(get("/api/v1/exchange-rate")).andExpect(status().isUnauthorized());
+        String token = account();
+        mvc.perform(get("/api/v1/exchange-rate").header("Authorization", token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.rate").value(3.75))
+                .andExpect(jsonPath("$.source").value("ExchangeRate-API"));
+        mvc.perform(get("/api/v1/exchange-rate").param("from", "EUR").header("Authorization", token)).andExpect(status().isBadRequest());
     }
 
     @Test
