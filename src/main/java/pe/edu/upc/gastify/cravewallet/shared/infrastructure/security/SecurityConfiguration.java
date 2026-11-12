@@ -36,6 +36,7 @@ public class SecurityConfiguration {
                         authorize.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**").permitAll();
                     }
+                    authorize.requestMatchers(HttpMethod.GET, "/api/v1/premium/status").authenticated();
                     authorize.anyRequest().denyAll();
                 })
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(
