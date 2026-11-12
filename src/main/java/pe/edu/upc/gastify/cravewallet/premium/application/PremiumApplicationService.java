@@ -46,6 +46,17 @@ public class PremiumApplicationService {
                 ));
     }
 
+
+    public boolean hasPremiumAccess(UUID ownerId) {
+
+        return repository.findByOwnerId(ownerId)
+                .map(membership ->
+                        membership.hasAccessAt(Instant.now())
+                )
+                .orElse(false);
+    }
+
+
     public record PremiumStatusView(
             String plan,
             boolean premium,
