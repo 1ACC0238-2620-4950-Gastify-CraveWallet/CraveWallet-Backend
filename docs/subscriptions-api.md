@@ -39,8 +39,8 @@ enviar este mismo contrato con los campos precompletados.
 
 ## Listado y resumen
 
-Devuelve items, monthlyTotalsByCurrency, monthlyTotalPen, conversionAvailable
-y exchangeRate. Ver [cotización y recordatorios](exchange-and-reminders-api.md).
+Devuelve `items`, `monthlyTotalsByCurrency`, `monthlyTotalPen`, `conversionAvailable`,
+`exchangeRate` y `monthlyTotalsByCategory`. Ver [cotización y recordatorios](exchange-and-reminders-api.md).
 Filtros opcionales: `status=ACTIVE|CANCELLED`, `search` sobre el nombre y `category`
 exacta, sin distinguir mayúsculas. Orden: fecha de renovación y UUID. El resumen
 corresponde a los resultados filtrados activos. Anuales se dividen entre doce;
@@ -48,6 +48,13 @@ la suma se redondea a dos decimales. Es una estimación mensual, no un historial
 de cargos pagados. El desglose separa monedas y monthlyTotalPen convierte USD con
 cotización fechada. Si no está disponible conserva los originales y devuelve
 total PEN null. El historial cancelado tiene desglose vacío y total cero.
+
+`monthlyTotalsByCategory` contiene los subtotales de los mismos resultados activos
+filtrados. Agrupa categorías sin distinguir mayúsculas y las ordena alfabéticamente.
+Cada entrada incluye `category`, `monthlyTotalsByCurrency` y `monthlyTotalPen`.
+Todos los subtotales usan la misma cotización del resumen. Si falta la cotización,
+el subtotal en PEN es `null` solo para las categorías con importes en USD. Si no
+hay resultados activos, el arreglo está vacío.
 
 ## Edición y cancelación
 
@@ -60,6 +67,19 @@ PATCH acepta cualquier combinación no vacía de `amount`, `category` y
 
 Una cancelación conserva importe, fecha y registro, fija `cancelledAt` y excluye
 el elemento del portafolio activo. Repetirla devuelve el mismo registro y fecha.
+La respuesta de `POST /api/v1/subscriptions/{id}/cancel` agrega `estimatedSavings`
+cuando la fecha de cancelación en `America/Lima` es anterior a `nextBillingDate`.
+El campo vale `null` si la cancelación fue el día de la renovación o después.
+
+`estimatedSavings.amount` y `estimatedSavings.currency` representan el importe
+original del próximo cobro. Para un ciclo anual se usa el importe anual completo.
+`estimatedSavings.amountPen` contiene su equivalente en soles y
+`estimatedSavings.exchangeRate` contiene la cotización usada cuando aplica. Si no
+hay cotización para USD, ambos campos son `null` y se conserva el importe en USD.
+Al reintentar, la estimación en soles usa la cotización disponible en ese momento.
+Flutter debe presentar el importe como ahorro potencial sujeto a cancelar a tiempo
+con el proveedor.
+
 Editar un cancelado devuelve 409; no hay reactivación ni DELETE. La cancelación
 solo afecta CraveWallet: no cancela el servicio contratado con el proveedor.
 
