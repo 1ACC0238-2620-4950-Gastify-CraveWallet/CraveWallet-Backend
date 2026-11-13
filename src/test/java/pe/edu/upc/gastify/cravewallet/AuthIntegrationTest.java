@@ -85,6 +85,24 @@ class AuthIntegrationTest {
     }
 
     @Test
+    void registrationAndLoginTokensBothAuthenticateNewFreeUser() throws Exception {
+        String email = email();
+        JsonNode registration = register(email);
+        JsonNode login = json.readTree(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("email", email, "password", "Password123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.id").value(registration.path("user").path("id").asText()))
+                .andReturn().getResponse().getContentAsString());
+
+        for (JsonNode session : List.of(login, registration)) {
+            mvc.perform(get("/api/v1/premium/status").header("Authorization", bearer(session)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.plan").value("FREE"))
+                    .andExpect(jsonPath("$.premium").value(false));
+        }
+    }
+
+    @Test
     void refreshRotatesBothTokensAndLogoutInvalidatesTheNewPair() throws Exception {
         JsonNode original = register(email());
         JsonNode renewed = json.readTree(mvc.perform(post("/api/v1/auth/refresh").contentType(MediaType.APPLICATION_JSON)
