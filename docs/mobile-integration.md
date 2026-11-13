@@ -36,6 +36,17 @@ de demostración y vuelve a iniciar sesión en ambas apps.
 Para Flutter Web servido desde otro origen, el backend necesitaría permitir
 ese origen mediante CORS. Android y iOS usan el cliente HTTP nativo.
 
+Para probar Flutter Web en la misma PC, inicia el backend con el perfil
+`local` o `postgres` y ejecuta en el repositorio Flutter:
+
+```powershell
+flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8080
+```
+
+Los perfiles de desarrollo admiten el origen HTTP de `localhost` o
+`127.0.0.1` en el puerto que elija Flutter. Si el backend ya estaba
+ejecutándose cuando cambió la configuración, reinícialo para aplicarla.
+
 ## Contratos para completar la integración
 
 - [Premium](premium-api.md) describe estado, precio, checkout, cancelación e
