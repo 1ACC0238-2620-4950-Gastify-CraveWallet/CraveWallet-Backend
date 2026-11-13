@@ -1,11 +1,11 @@
-# Optional Render deployment. Both resources explicitly use the free plan.
+# AV2 web service. PostgreSQL is managed separately and injected through Environment.
 services:
   - type: web
     name: cravewallet-api
     runtime: docker
     plan: free
     region: oregon
-    branch: feature/cloud-deployment
+    branch: feature/av2-premium-backend
     healthCheckPath: /actuator/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
@@ -13,20 +13,16 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: DATABASE_USERNAME
-        fromDatabase:
-          name: cravewallet-db
-          property: user
+        sync: false
       - key: DATABASE_PASSWORD
-        fromDatabase:
-          name: cravewallet-db
-          property: password
+        sync: false
       - key: JWT_SECRET
         generateValue: true
-databases:
-  - name: cravewallet-db
-    plan: free
-    region: oregon
-    postgresMajorVersion: "17"
-    databaseName: cravewallet
-    user: cravewallet
-    ipAllowList: []
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
+      - key: MERCADOPAGO_WEBHOOK_SECRET
+        sync: false
+      - key: MERCADOPAGO_BACK_URL
+        sync: false
