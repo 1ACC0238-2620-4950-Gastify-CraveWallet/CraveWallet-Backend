@@ -1,7 +1,7 @@
 # Delivery: gastos y presupuesto
 
-Tres endpoints requieren Bearer JWT; el propietario viene del token. Todos los
-importes son PEN. Flyway V3 crea gastos y presupuestos, con restricciones únicas
+Cuatro endpoints requieren Bearer JWT. El propietario de los gastos y presupuestos
+viene del token. Todos los importes son PEN. Flyway V3 crea gastos y presupuestos, con restricciones únicas
 por cuenta/solicitud y cuenta/año/mes.
 
 ## Registro
@@ -53,6 +53,26 @@ son null y exceeded es false. Las semanas corresponden a días 1–7, 8–14, 15
 22–28 y 29–fin de mes. No son semanas ISO. Total y desgloses proceden de una
 consulta de gastos del mismo usuario y período; no mezclan datos ajenos.
 
+## Sugerencias de comercios
+
+`GET /api/v1/delivery-expenses/merchants/suggestions?query=pizza`
+
+Envía de 2 a 100 caracteres después de quitar los espacios de los extremos.
+Responde 200 con un arreglo de hasta cinco sugerencias para Lima:
+
+```json
+[
+  { "externalId": "place-id-de-ejemplo", "name": "Pizzería de ejemplo", "address": "Lima, Perú" }
+]
+```
+
+Devuelve `[]` si no hay coincidencias o si falta `GOOGLE_PLACES_API_KEY`, 400
+para una consulta inválida, 401 si la sesión no es válida y 503 si el proveedor
+falla. El formulario puede conservar el comercio escrito manualmente en
+cualquiera de esos casos. Configura una clave para
+[Places API (New)](https://developers.google.com/maps/documentation/places/web-service/text-search)
+en las variables del servicio.
+
 ## Eventos y alcance
 
 El alta publica eventos internos ExpenseRegistered y, al pasar de no excedido
@@ -60,7 +80,8 @@ a excedido, LimitExceeded. Consumidores de efectos externos deben usar
 `@TransactionalEventListener(AFTER_COMMIT)`. No hay avisos enviados ni outbox;
 cambiar el límite actualiza el estado sin enviar una notificación.
 
-Google Places, edición/eliminación, historial paginado y conexión Android están
-pendientes. El comercio manual funciona sin integración externa. Las pruebas
+La edición, eliminación y el historial paginado quedan fuera de las cuatro
+rutas de Delivery del inventario. Las pruebas
 verifican presupuesto, períodos, aislamiento, validaciones, deduplicación,
-conflictos y altas simultáneas con un reintento. H2 verificado; PostgreSQL pendiente.
+conflictos, altas simultáneas con un reintento y el contrato de sugerencias
+con un proveedor simulado.
