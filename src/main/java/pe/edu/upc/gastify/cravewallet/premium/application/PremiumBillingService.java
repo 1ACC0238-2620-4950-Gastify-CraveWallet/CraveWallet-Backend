@@ -107,13 +107,24 @@ public class PremiumBillingService {
         if (current.isPresent() && current.get().canceledAt() == null) {
             var checkout = current.get();
             if ("pending".equals(checkout.status()) && validCheckoutUrl(checkout.checkoutUrl())) {
-                return new CheckoutStart(null, null, checkoutView(checkout), false);
-            }
-            if ("creating".equals(checkout.status())) {
+                Agreement remote = gateway.findAgreement(checkout.agreementId()).orElseThrow(PremiumBillingService::unavailable);
+                requireSameAgreement(checkout, remote);
+                if (remote.canceled()) {
+                    sync(checkout, remote);
+                    markMembershipCanceled(owner);
+                } else {
+                    if (!knownAgreementStatus(remote) || !remote.matchesMonthlyTerms()) throw unavailable();
+                    if (!"pending".equals(remote.status())) {
+                        throw conflict("La suscripción ya cambió de estado.");
+                    }
+                    return new CheckoutStart(null, null, checkoutView(persistAgreement(checkout, remote)), false);
+                }
+            } else if ("creating".equals(checkout.status())) {
                 gateway.checkCheckoutConfiguration();
                 return new CheckoutStart(checkout.reference(), payerEmail(owner), null, true);
+            } else {
+                throw conflict("Ya existe un checkout o una suscripción en curso.");
             }
-            throw conflict("Ya existe un checkout o una suscripción en curso.");
         }
 
         gateway.checkCheckoutConfiguration();

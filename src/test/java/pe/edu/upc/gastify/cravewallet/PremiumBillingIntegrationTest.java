@@ -137,8 +137,10 @@ class PremiumBillingIntegrationTest {
         Account user = account();
         when(gateway.createMonthlyCheckout(any(), eq(user.email()))).thenAnswer(call -> {
             UUID reference = call.getArgument(0);
+            Agreement pending = agreement("recovered-unversioned", reference, "pending", -1, now);
             when(gateway.findCheckout(reference, user.email()))
-                    .thenReturn(Optional.of(agreement("recovered-unversioned", reference, "pending", -1, now)));
+                    .thenReturn(Optional.of(pending));
+            when(gateway.findAgreement(pending.id())).thenReturn(Optional.of(pending));
             throw new PremiumFailure(503, "Se perdió la respuesta.");
         });
         mvc.perform(post(ROOT + "/checkout").header("Authorization", user.token()))
@@ -343,6 +345,31 @@ class PremiumBillingIntegrationTest {
         authorize(checkout(user));
         mvc.perform(post(ROOT + "/cancel").header("Authorization", user.token())).andExpect(status().isServiceUnavailable());
         premiumStatus(user).andExpect(jsonPath("$.cancelAtPeriodEnd").value(false));
+    }
+
+    @Test
+    void continuingRemotelyCanceledCheckoutCreatesNewSessionWithoutWebhook() throws Exception {
+        Account user = account();
+        Agreement pending = checkout(user);
+        when(gateway.findAgreement(pending.id())).thenReturn(Optional.of(
+                agreement(pending.id(), pending.reference(), "canceled", 1, now.plusSeconds(1))));
+
+        mvc.perform(post(ROOT + "/checkout").header("Authorization", user.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value(org.hamcrest.Matchers.not(pending.id())));
+        verify(gateway, times(2)).createMonthlyCheckout(any(), eq(user.email()));
+        premiumStatus(user).andExpect(jsonPath("$.membershipStatus").value("PENDING"));
+    }
+
+    @Test
+    void continuingCheckoutWithUnknownRemoteStateDoesNotCreateAnotherSubscription() throws Exception {
+        Account user = account();
+        Agreement pending = checkout(user);
+        when(gateway.findAgreement(pending.id())).thenReturn(Optional.empty());
+
+        mvc.perform(post(ROOT + "/checkout").header("Authorization", user.token()))
+                .andExpect(status().isServiceUnavailable());
+        verify(gateway, times(1)).createMonthlyCheckout(any(), eq(user.email()));
     }
 
     private Account account() throws Exception {
