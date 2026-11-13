@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pe.edu.upc.gastify.cravewallet.subscriptions.domain.model.Subscription;
 import pe.edu.upc.gastify.cravewallet.subscriptions.domain.repositories.SubscriptionRepository;
+import pe.edu.upc.gastify.cravewallet.subscriptions.domain.services.PlanAccessPort;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -14,19 +15,39 @@ import java.util.UUID;
 @Service
 @Transactional
 public class SubscriptionApplicationService {
+
     private final SubscriptionRepository repository;
     private final OwnerRegistrationLock ownerLock;
-    public SubscriptionApplicationService(SubscriptionRepository repository, OwnerRegistrationLock ownerLock) {
+    private final PlanAccessPort planAccess;
+
+    public SubscriptionApplicationService(
+            SubscriptionRepository repository,
+            OwnerRegistrationLock ownerLock,
+            PlanAccessPort planAccess
+    ) {
         this.repository = repository;
         this.ownerLock = ownerLock;
+        this.planAccess = planAccess;
     }
+
 
     public Subscription register(UUID owner, String name, BigDecimal amount, Subscription.Currency currency,
                                  String category, Subscription.BillingCycle cycle, LocalDate date) {
         validateDate(date);
         ownerLock.acquire(owner);
-        // Baseline Free: Premium no está implementado; nunca confiar en un flag enviado por el cliente.
-        if (repository.countActive(owner) >= 5) throw new SubscriptionFailure(409, "El plan Free admite cinco suscripciones activas.");
+// El límite de suscripciones depende del plan confirmado por el backend.
+// Nunca confiar en un estado Premium enviado por el cliente.
+        PlanAccessPort.PlanAccess access =
+                planAccess.getPlanAccess(owner);
+
+        long activeCount = repository.countActive(owner);
+
+        if (!access.canRegister(activeCount)) {
+            throw new SubscriptionFailure(
+                    409,
+                    "El plan Free admite cinco suscripciones activas."
+            );
+        }
         return repository.save(new Subscription(UUID.randomUUID(), owner, name, amount, currency,
                 category, cycle, date, Subscription.Status.ACTIVE, null));
     }

@@ -1,5 +1,6 @@
 package pe.edu.upc.gastify.cravewallet.delivery.interfaces.rest;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -11,12 +12,29 @@ import pe.edu.upc.gastify.cravewallet.delivery.application.*;
 import pe.edu.upc.gastify.cravewallet.delivery.domain.model.*;
 import java.math.BigDecimal;
 import java.time.*;
+import java.util.List;
 import java.util.UUID;
 
 @RestController @RequestMapping("/api/v1/delivery-expenses") @SecurityRequirement(name = "bearerAuth")
 public class DeliveryController {
     private final DeliveryApplicationService service;
-    public DeliveryController(DeliveryApplicationService service) { this.service = service; }
+    private final MerchantSearchApplicationService merchantSearch;
+
+    public DeliveryController(DeliveryApplicationService service, MerchantSearchApplicationService merchantSearch) {
+        this.service = service;
+        this.merchantSearch = merchantSearch;
+    }
+
+    @GetMapping("/merchants/suggestions")
+    @Operation(summary = "Buscar sugerencias de comercios en Lima",
+            description = "Busca por nombre (2 a 100 caracteres). Devuelve una lista vacía si no hay sugerencias.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Búsqueda inválida")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Se requiere un JWT válido")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "Proveedor no disponible")
+    public List<MerchantSuggestion> suggestMerchants(@RequestParam String query) {
+        return merchantSearch.search(query);
+    }
+
     @PostMapping
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Gasto registrado")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Reintento reconocido")

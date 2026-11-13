@@ -8,9 +8,15 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import pe.edu.upc.gastify.cravewallet.iam.application.AuthFailure;
+import pe.edu.upc.gastify.cravewallet.premium.application.PremiumFailure;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(PremiumFailure.class)
+    ProblemDetail premiumFailure(PremiumFailure failure) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(failure.status()), failure.getMessage());
+    }
+
     @ExceptionHandler(pe.edu.upc.gastify.cravewallet.delivery.application.DeliveryFailure.class)
     ProblemDetail deliveryFailure(pe.edu.upc.gastify.cravewallet.delivery.application.DeliveryFailure failure) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(failure.status()), failure.getMessage());

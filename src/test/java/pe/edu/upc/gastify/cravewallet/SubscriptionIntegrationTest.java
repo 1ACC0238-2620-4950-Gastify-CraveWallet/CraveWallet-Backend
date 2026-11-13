@@ -62,12 +62,17 @@ class SubscriptionIntegrationTest {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String repeated = mvc.perform(post(ROOT + "/" + id + "/cancel").header("Authorization", token))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertThat(json.readTree(repeated)).isEqualTo(json.readTree(cancelled));
+        JsonNode cancellation = json.readTree(cancelled);
+        assertThat(json.readTree(repeated)).isEqualTo(cancellation);
+        assertThat(cancellation.get("id").asText()).isEqualTo(id);
+        assertThat(cancellation.get("status").asText()).isEqualTo("CANCELLED");
+        assertThat(cancellation.at("/estimatedSavings/amountPen").decimalValue()).isEqualByComparingTo("24.50");
         mvc.perform(get(ROOT).header("Authorization", token)).andExpect(jsonPath("$.items.length()").value(4));
         mvc.perform(get(ROOT).param("status", "CANCELLED").header("Authorization", token))
                 .andExpect(jsonPath("$.items[0].id").value(id))
                 .andExpect(jsonPath("$.items[0].cancelledAt").isString())
-                .andExpect(jsonPath("$.monthlyTotalsByCurrency").isEmpty());
+                .andExpect(jsonPath("$.monthlyTotalsByCurrency").isEmpty())
+                .andExpect(jsonPath("$.monthlyTotalsByCategory").isEmpty());
         mvc.perform(patch(ROOT + "/" + id).header("Authorization", token).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"amount\":99}")).andExpect(status().isConflict());
         create(token, body());
@@ -101,12 +106,23 @@ class SubscriptionIntegrationTest {
         Map<String, Object> annual = body(); annual.put("currency", "USD"); annual.put("billingCycle", "ANNUAL");
         annual.put("amount", 120); annual.put("name", "Cloud"); annual.put("category", "Trabajo");
         create(token, annual);
-        mvc.perform(get(ROOT).header("Authorization", token)).andExpect(jsonPath("$.monthlyTotalsByCurrency.PEN").value(12))
+        Map<String, Object> work = body();
+        work.put("name", "Correo"); work.put("category", "trabajo"); work.put("amount", 8);
+        create(token, work);
+        mvc.perform(get(ROOT).header("Authorization", token)).andExpect(jsonPath("$.monthlyTotalsByCurrency.PEN").value(20))
                 .andExpect(jsonPath("$.monthlyTotalsByCurrency.USD").value(10))
-                .andExpect(jsonPath("$.monthlyTotalPen").value(49.5)).andExpect(jsonPath("$.conversionAvailable").value(true));
+                .andExpect(jsonPath("$.monthlyTotalPen").value(57.5)).andExpect(jsonPath("$.conversionAvailable").value(true))
+                .andExpect(jsonPath("$.monthlyTotalsByCategory.length()").value(2))
+                .andExpect(jsonPath("$.monthlyTotalsByCategory[0].category").value("Entretenimiento"))
+                .andExpect(jsonPath("$.monthlyTotalsByCategory[0].monthlyTotalPen").value(12))
+                .andExpect(jsonPath("$.monthlyTotalsByCategory[1].monthlyTotalsByCurrency.PEN").value(8))
+                .andExpect(jsonPath("$.monthlyTotalsByCategory[1].monthlyTotalsByCurrency.USD").value(10))
+                .andExpect(jsonPath("$.monthlyTotalsByCategory[1].monthlyTotalPen").value(45.5));
         mvc.perform(get(ROOT).param("search", "clO").param("category", "trabajo").header("Authorization", token))
                 .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].name").value("Cloud"))
-                .andExpect(jsonPath("$.monthlyTotalsByCurrency.PEN").doesNotExist());
+                .andExpect(jsonPath("$.monthlyTotalsByCurrency.PEN").doesNotExist())
+                .andExpect(jsonPath("$.monthlyTotalsByCategory.length()").value(1))
+                .andExpect(jsonPath("$.monthlyTotalsByCategory[0].monthlyTotalPen").value(37.5));
     }
 
     @Test

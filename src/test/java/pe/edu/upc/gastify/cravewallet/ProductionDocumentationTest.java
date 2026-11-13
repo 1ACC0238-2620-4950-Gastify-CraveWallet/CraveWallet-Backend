@@ -26,7 +26,13 @@ class ProductionDocumentationTest {
     void productionDocumentationIsPublicButUserDataRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"));
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
+                .andExpect(jsonPath("$.paths['/api/v1/delivery-expenses/merchants/suggestions'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/premium/status'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/premium/checkout'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/premium/cancel'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/premium/payments'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/premium/webhook'].post").exists());
         mockMvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
         mockMvc.perform(get("/api/v1/subscriptions")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/users/me")).andExpect(status().isUnauthorized());

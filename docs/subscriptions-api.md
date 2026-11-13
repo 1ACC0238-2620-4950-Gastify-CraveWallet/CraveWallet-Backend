@@ -39,8 +39,8 @@ enviar este mismo contrato con los campos precompletados.
 
 ## Listado y resumen
 
-Devuelve items, monthlyTotalsByCurrency, monthlyTotalPen, conversionAvailable
-y exchangeRate. Ver [cotización y recordatorios](exchange-and-reminders-api.md).
+Devuelve `items`, `monthlyTotalsByCurrency`, `monthlyTotalPen`, `conversionAvailable`,
+`exchangeRate` y `monthlyTotalsByCategory`. Ver [cotización y recordatorios](exchange-and-reminders-api.md).
 Filtros opcionales: `status=ACTIVE|CANCELLED`, `search` sobre el nombre y `category`
 exacta, sin distinguir mayúsculas. Orden: fecha de renovación y UUID. El resumen
 corresponde a los resultados filtrados activos. Anuales se dividen entre doce;
@@ -48,6 +48,13 @@ la suma se redondea a dos decimales. Es una estimación mensual, no un historial
 de cargos pagados. El desglose separa monedas y monthlyTotalPen convierte USD con
 cotización fechada. Si no está disponible conserva los originales y devuelve
 total PEN null. El historial cancelado tiene desglose vacío y total cero.
+
+`monthlyTotalsByCategory` contiene los subtotales de los mismos resultados activos
+filtrados. Agrupa categorías sin distinguir mayúsculas y las ordena alfabéticamente.
+Cada entrada incluye `category`, `monthlyTotalsByCurrency` y `monthlyTotalPen`.
+Todos los subtotales usan la misma cotización del resumen. Si falta la cotización,
+el subtotal en PEN es `null` solo para las categorías con importes en USD. Si no
+hay resultados activos, el arreglo está vacío.
 
 ## Edición y cancelación
 
@@ -60,18 +67,30 @@ PATCH acepta cualquier combinación no vacía de `amount`, `category` y
 
 Una cancelación conserva importe, fecha y registro, fija `cancelledAt` y excluye
 el elemento del portafolio activo. Repetirla devuelve el mismo registro y fecha.
+La respuesta de `POST /api/v1/subscriptions/{id}/cancel` agrega `estimatedSavings`
+cuando la fecha de cancelación en `America/Lima` es anterior a `nextBillingDate`.
+El campo vale `null` si la cancelación fue el día de la renovación o después.
+
+`estimatedSavings.amount` y `estimatedSavings.currency` representan el importe
+original del próximo cobro. Para un ciclo anual se usa el importe anual completo.
+`estimatedSavings.amountPen` contiene su equivalente en soles y
+`estimatedSavings.exchangeRate` contiene la cotización usada cuando aplica. Si no
+hay cotización para USD, ambos campos son `null` y se conserva el importe en USD.
+Al reintentar, la estimación en soles usa la cotización disponible en ese momento.
+Flutter debe presentar el importe como ahorro potencial sujeto a cancelar a tiempo
+con el proveedor.
+
 Editar un cancelado devuelve 409; no hay reactivación ni DELETE. La cancelación
 solo afecta CraveWallet: no cancela el servicio contratado con el proveedor.
 
 ## Plan inicial y límites
 
-El backend aplica cinco suscripciones activas por usuario como baseline Free,
-coherente con la app actual. Bloquea el registro número seis con 409; cancelar
-libera un cupo. El bloqueo transaccional del propietario serializa altas
-simultáneas. Edición y cancelación bloquean el registro para evitar sobrescrituras
-simultáneas. Todas las cuentas usan esta política mientras Premium no exista;
-el flag Premium simulado en Android no autoriza excepciones. El equipo debe
-confirmar las reglas de Premium antes de implementar facturación.
+El plan Free permite cinco suscripciones activas. El registro número seis
+devuelve 409 y cancelar libera un cupo. Una membresía Premium vigente elimina
+ese límite. Al vencer Premium se conservan los registros existentes y se aplica
+el límite Free a las nuevas altas. El bloqueo transaccional del propietario
+serializa altas simultáneas. Edición y cancelación bloquean el registro.
+Ver [estado y facturación del plan](premium-api.md).
 
 Errores: 400 campos/JSON inválidos, 401 sin token válido, 404 recurso inexistente
 o ajeno y 409 límite o edición de cancelados. Flyway V2 crea tabla e índice;
@@ -82,7 +101,7 @@ no se almacena dinero usando float/double.
 La app Kotlin deberá mapear `MENSUAL` a `MONTHLY`, `ANUAL` a `ANNUAL` y sus estados
 locales a ACTIVE/CANCELLED. EUR y trimestral siguen fuera del contrato del informe.
 No se modificó ni conectó Android. Cotización, datos del recordatorio y registro/
-presupuesto de Delivery ya existen. Calendario móvil y cobros Premium pendientes.
+presupuesto de Delivery ya existen. El calendario se integra en el cliente.
 
 `SubscriptionIntegrationTest` verifica aislamiento entre cuentas, validaciones,
 edición, historial, cancelación repetida, reutilización de cupo, filtros, totales

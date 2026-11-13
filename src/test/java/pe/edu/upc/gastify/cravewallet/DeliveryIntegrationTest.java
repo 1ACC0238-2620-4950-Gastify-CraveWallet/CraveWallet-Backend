@@ -8,10 +8,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import pe.edu.upc.gastify.cravewallet.delivery.application.DeliveryFailure;
+import pe.edu.upc.gastify.cravewallet.delivery.domain.model.MerchantSuggestion;
+import pe.edu.upc.gastify.cravewallet.delivery.domain.services.MerchantSearchPort;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -20,8 +26,40 @@ class DeliveryIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate db;
+    @MockitoBean MerchantSearchPort merchantSearch;
     private static final String ROOT = "/api/v1/delivery-expenses";
     private static final LocalDate DATE = LocalDate.of(2026, 9, 8);
+
+    @Test
+    void merchantSearchRequiresJwtAndValidQueryBeforeCallingProvider() throws Exception {
+        String route = ROOT + "/merchants/suggestions";
+        String token = account();
+        mvc.perform(get(route).param("query", "Pizza")).andExpect(status().isUnauthorized());
+        mvc.perform(get(route).header("Authorization", token)).andExpect(status().isBadRequest());
+        mvc.perform(get(route).param("query", " a ").header("Authorization", token)).andExpect(status().isBadRequest());
+        mvc.perform(get(route).param("query", "a".repeat(101)).header("Authorization", token))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(merchantSearch);
+    }
+
+    @Test
+    void merchantSearchReturnsSuggestionsAndReportsProviderFailure() throws Exception {
+        String route = ROOT + "/merchants/suggestions";
+        String token = account();
+        when(merchantSearch.search("Pizza")).thenReturn(List.of(new MerchantSuggestion("place-1", "Pizzería", "Lima")));
+        when(merchantSearch.search("sin coincidencias")).thenReturn(List.of());
+        when(merchantSearch.search("no disponible")).thenThrow(new DeliveryFailure(503, "Sugerencias no disponibles."));
+
+        mvc.perform(get(route).param("query", " Pizza ").header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].externalId").value("place-1"))
+                .andExpect(jsonPath("$[0].name").value("Pizzería"))
+                .andExpect(jsonPath("$[0].address").value("Lima"));
+        mvc.perform(get(route).param("query", "sin coincidencias").header("Authorization", token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        mvc.perform(get(route).param("query", "no disponible").header("Authorization", token))
+                .andExpect(status().isServiceUnavailable());
+    }
 
     @Test
     void budgetSummaryAndPeriodBoundaries() throws Exception {
