@@ -1,54 +1,62 @@
-# Integración con CraveWallet-Mobile
+# Integración móvil para AV2
 
-Revisión del repositorio privado `CraveWallet-Mobile`, rama `develop`, commit
-`2d4200e`. Sus archivos se revisaron sin modificar la aplicación ni ejecutar su
-build Android.
+La revisión del 13 de noviembre de 2026 corresponde a
+[Kotlin/Compose, `develop` en `e72d283`](https://github.com/1ACC0238-2620-4950-Gastify-CraveWallet/CraveWallet-Mobile/tree/e72d283)
+y [Flutter, `develop` en `ad7ace8`](https://github.com/1ACC0238-2620-4950-Gastify-CraveWallet/CraveWallet-Flutter/tree/ad7ace8).
+Ambas apps tienen un modo conectado que usa la API REST y un modo de demostración con datos locales.
 
-## Lo que existe en la app
-
-- Kotlin, Jetpack Compose y Material 3; no Flutter.
-- Pantallas de Inicio, Gastos, alta, Análisis, Perfil y demostración de Premium.
-- Suscripciones y perfil locales en JSON mediante SharedPreferences.
-- Calendario mediante CalendarContract y avisos locales mediante WorkManager.
-- Consulta de cotización al proveedor `open.er-api.com` directamente desde Android.
-- Premium simulado mediante un cambio de estado local, sin cobros reales.
-
-No se encontró un cliente para el backend, ni login/registro con sus endpoints.
-La existencia del código no acredita instalación en un dispositivo ni todas las
-historias satisfechas. WorkManager genera notificaciones locales; llamarlas push
-remoto sería impreciso.
-
-## Próximo contrato a conectar
-
-Usar las rutas de [autenticación y perfil](auth-api.md). El cliente necesita
-pantallas de registro/login, un cliente HTTP, almacenamiento protegido de tokens,
-renovación y logout remoto. No se debe enviar un `userId` elegido por la interfaz
-para obtener datos ajenos. El JWT identifica al propietario.
-
-En el emulador de Android, el host de desarrollo normalmente se alcanza mediante
-`http://10.0.2.2:8080`. Para un teléfono físico, se requiere una dirección accesible
-del host o un despliegue HTTPS; `localhost` del teléfono apunta al propio teléfono.
-La configuración actual del backend escucha solo en el equipo local.
-
-## Diferencias que deben acordarse para integrar el CRUD
-
-| Tema | App actual | Diseño del informe |
+| Flujo | Kotlin/Compose | Flutter |
 | --- | --- | --- |
-| Stack móvil | Kotlin / Compose | Flutter / Dart |
-| Monedas de suscripción | PEN, USD, EUR | PEN y USD |
-| Periodicidades | Mensual, trimestral, anual | Mensual y anual |
-| Persistencia móvil | SharedPreferences con JSON | SQLite como caché de lectura |
-| Premium | Estado local de demostración | Acceso confirmado por backend y Stripe |
-| Anticipación de avisos | Opciones configurables | TS04 y US12 describen 24 horas |
+| Sesión | Registro, login, JWT, renovación, logout y lectura de perfil. | Registro, login, JWT, renovación, logout y lectura de perfil. |
+| Suscripciones | Alta, listado, historial de canceladas, edición y cancelación. Usa la tasa del portafolio o `GET /exchange-rate`. | Mismas operaciones sobre suscripciones. Lee la tasa del portafolio. Si el backend indica que la conversión no está disponible, debe mostrar ese estado en vez de calcular con la tasa de demostración. |
+| Resumen por categoría y ahorro al cancelar | Pendiente leer `monthlyTotalsByCategory` y `estimatedSavings`. | Pendiente leer esos campos. La gráfica calcula los totales por categoría en el cliente. |
+| Delivery | Alta, resumen y presupuesto. Mantiene el `requestId` al reintentar el mismo gasto. | Alta, resumen y presupuesto. Debe conservar el UUID del formulario si el usuario reintenta un gasto tras un fallo. |
+| Sugerencias de comercios | Pendiente conectar el campo de comercio. | Pendiente conectar el campo de comercio. |
+| Premium | El modo conectado fija el plan en Free y muestra que Premium no está disponible. `fix/premium-price-9-99` corrige el precio en dos archivos y sigue fuera de `develop`. | El perfil remoto queda en Free. El modo de demostración usa un plan Premium local. |
+| Recordatorios | El calendario se gestiona en Android y la prueba de integración cubre el contrato REST del recordatorio. | La pantalla cambia preferencias en memoria. Queda pendiente conectarla al calendario o al sistema de avisos si se incluye en el recorrido. |
 
-No se ampliaron silenciosamente los contratos para cubrir estas diferencias.
-El equipo debe actualizar el informe o ajustar la app de forma coherente. El
-backend de autenticación es independiente de Flutter/Kotlin y puede atender a
-ambos clientes. El [CRUD de suscripciones](subscriptions-api.md) ya está disponible,
-con PEN/USD y ciclos mensual/anual. [Delivery](delivery-api.md) ya dispone de
-registro, resumen y presupuesto. Premium y la conexión Android siguen pendientes.
+## Configuración compartida
 
-El resumen de suscripciones ya agrega conversión PEN con disponibilidad y fecha
-de cotización; el [endpoint de recordatorio](exchange-and-reminders-api.md) prepara
-datos del evento. Android debe conservar los importes originales, mostrar la
-atribución del proveedor y distinguir datos antiguos/no disponibles.
+Las apps se conectan a la URL HTTPS del API. El servicio configura PostgreSQL,
+Mercado Pago y Google Places en [Render](cloud-deployment.md). Ambas apps traen
+`https://cravewallet-api.onrender.com` como valor predeterminado. Si el nuevo
+despliegue conserva el dominio, se puede reutilizar ese valor. Si cambia, usa
+la URL de Render hasta el dominio, pues los clientes agregan `/api/v1` al llamar.
+
+```powershell
+# Kotlin / Android
+.\gradlew.bat :app:assembleDebug "-PAPI_BASE_URL=https://API_DEL_AV2"
+# Flutter
+flutter run --dart-define=API_BASE_URL=https://API_DEL_AV2
+```
+
+En Kotlin, el valor guardado en **Servidor de pruebas** tiene prioridad sobre
+el valor compilado. Cuando el API se conecte a una base vacía, crea una cuenta
+de demostración y vuelve a iniciar sesión en ambas apps.
+Para Flutter Web servido desde otro origen, el backend necesitaría permitir
+ese origen mediante CORS. Android y iOS usan el cliente HTTP nativo.
+
+## Contratos para completar la integración
+
+- [Premium](premium-api.md) describe estado, precio, checkout, cancelación e
+  historial. La app abre `checkoutUrl` y vuelve a consultar `GET /premium/status`
+  al regresar. El backend cambia el plan al verificar el pago. En Kotlin,
+  el cliente debe admitir las respuestas de tipo arreglo para `GET /premium/payments`
+  y sugerencias. Flutter ya envuelve esos arreglos bajo `items` en su cliente HTTP.
+- [Delivery](delivery-api.md#sugerencias-de-comercios) documenta
+  `GET /api/v1/delivery-expenses/merchants/suggestions?query=...` y el registro manual.
+- [Suscripciones](subscriptions-api.md) describe `monthlyTotalsByCategory` y
+  `estimatedSavings`, con los casos en que el importe en soles es `null`.
+
+## Evidencia
+
+- Kotlin conserva un [resultado de integración contra el despliegue TB1](https://github.com/1ACC0238-2620-4950-Gastify-CraveWallet/CraveWallet-Mobile/blob/e72d283/docs/cloud-integration-results.json).
+  Ocho pruebas de la suite Kotlin pasaron en la revisión local. La prueba
+  adicional `realBackendRoundTrip` pasó con `CRAVE_LIVE_BACKEND` apuntando al JAR
+  local del AV2 con H2. Ejercitó registro, CRUD de suscripciones, recordatorio,
+  presupuesto, reintento de gasto, renovación de sesión y logout.
+- El [CI de Flutter en `ad7ace8`](https://github.com/1ACC0238-2620-4950-Gastify-CraveWallet/CraveWallet-Flutter/actions/runs/43304678864)
+  ejecutó análisis estático y pruebas de modelos.
+- Queda por ejecutar ambos clientes contra la URL pública del AV2, usando
+  la misma cuenta de prueba para confirmar datos compartidos, y capturar el
+  recorrido móvil con un pago de prueba y sugerencias reales.
