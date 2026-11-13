@@ -85,13 +85,12 @@ solo afecta CraveWallet: no cancela el servicio contratado con el proveedor.
 
 ## Plan inicial y límites
 
-El backend aplica cinco suscripciones activas por usuario como baseline Free,
-coherente con la app actual. Bloquea el registro número seis con 409; cancelar
-libera un cupo. El bloqueo transaccional del propietario serializa altas
-simultáneas. Edición y cancelación bloquean el registro para evitar sobrescrituras
-simultáneas. Todas las cuentas usan esta política mientras Premium no exista;
-el flag Premium simulado en Android no autoriza excepciones. El equipo debe
-confirmar las reglas de Premium antes de implementar facturación.
+El plan Free permite cinco suscripciones activas. El registro número seis
+devuelve 409 y cancelar libera un cupo. Una membresía Premium vigente elimina
+ese límite. Al vencer Premium se conservan los registros existentes y se aplica
+el límite Free a las nuevas altas. El bloqueo transaccional del propietario
+serializa altas simultáneas. Edición y cancelación bloquean el registro.
+Ver [estado y facturación del plan](premium-api.md).
 
 Errores: 400 campos/JSON inválidos, 401 sin token válido, 404 recurso inexistente
 o ajeno y 409 límite o edición de cancelados. Flyway V2 crea tabla e índice;
@@ -102,7 +101,7 @@ no se almacena dinero usando float/double.
 La app Kotlin deberá mapear `MENSUAL` a `MONTHLY`, `ANUAL` a `ANNUAL` y sus estados
 locales a ACTIVE/CANCELLED. EUR y trimestral siguen fuera del contrato del informe.
 No se modificó ni conectó Android. Cotización, datos del recordatorio y registro/
-presupuesto de Delivery ya existen. Calendario móvil y cobros Premium pendientes.
+presupuesto de Delivery ya existen. El calendario se integra en el cliente.
 
 `SubscriptionIntegrationTest` verifica aislamiento entre cuentas, validaciones,
 edición, historial, cancelación repetida, reutilización de cupo, filtros, totales
