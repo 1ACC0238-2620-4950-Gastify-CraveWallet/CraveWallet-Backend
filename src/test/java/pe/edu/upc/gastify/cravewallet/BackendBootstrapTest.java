@@ -7,6 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -15,6 +17,30 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class BackendBootstrapTest {
     @Autowired
     private MockMvc mockMvc;
+
+    @Test
+    void localFlutterWebCanPreflightRegistrationAndAuthenticatedRequests() throws Exception {
+        String origin = "http://localhost:59730";
+        mockMvc.perform(options("/api/v1/auth/register")
+                        .header("Origin", origin)
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "content-type"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", origin));
+        mockMvc.perform(options("/api/v1/users/me")
+                        .header("Origin", origin)
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers", "authorization"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", origin));
+        mockMvc.perform(get("/api/v1/users/me").header("Origin", origin))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("Access-Control-Allow-Origin", origin));
+        mockMvc.perform(options("/api/v1/auth/register")
+                        .header("Origin", "https://example.com")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden());
+    }
 
     @Test
     void healthChecksApplicationAndLocalDatabase() throws Exception {
