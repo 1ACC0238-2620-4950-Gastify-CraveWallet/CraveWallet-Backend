@@ -1,7 +1,9 @@
 # Perfil de arranque sin Docker. H2 no representa la persistencia final del informe.
+# Flujo local confirmado con seller/buyer de prueba: el proveedor devuelve live_mode=true.
+MERCADOPAGO_EXPECTED_LIVE_MODE: true
 spring:
   datasource:
-    url: jdbc:h2:mem:cravewallet;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:file:./.local-data/cravewallet;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password: ""

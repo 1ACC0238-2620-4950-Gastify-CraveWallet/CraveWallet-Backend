@@ -36,7 +36,9 @@ public class SecurityConfiguration {
                         authorize.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**").permitAll();
                     }
-                    authorize.requestMatchers(HttpMethod.GET, "/api/v1/premium/status").authenticated();
+                    authorize.requestMatchers(HttpMethod.POST, "/api/v1/premium/webhook").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/api/v1/premium/status", "/api/v1/premium/payments").authenticated();
+                    authorize.requestMatchers(HttpMethod.POST, "/api/v1/premium/checkout", "/api/v1/premium/cancel").authenticated();
                     authorize.anyRequest().denyAll();
                 })
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(
