@@ -19,8 +19,7 @@ Ambas apps tienen un modo conectado que usa la API REST y un modo de demostraci√
 
 Las apps se conectan a la URL HTTPS del API. El servicio configura PostgreSQL,
 Mercado Pago y Google Places en [Render](cloud-deployment.md). Ambas apps traen
-`https://cravewallet-api.onrender.com` como valor predeterminado. Si el nuevo
-despliegue conserva el dominio, se puede reutilizar ese valor. Si cambia, usa
+`https://cravewallet-api-av2.onrender.com` como valor predeterminado para el AV2. Si cambia, usa
 la URL de Render hasta el dominio, pues los clientes agregan `/api/v1` al llamar.
 
 ```powershell

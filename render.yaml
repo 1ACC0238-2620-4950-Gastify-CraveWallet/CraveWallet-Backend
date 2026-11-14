@@ -1,7 +1,7 @@
 # AV2 web service. PostgreSQL is managed separately and injected through Environment.
 services:
   - type: web
-    name: cravewallet-api
+    name: cravewallet-api-av2
     runtime: docker
     plan: free
     region: oregon
@@ -18,6 +18,8 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: FLUTTER_WEB_ORIGIN
+        value: https://1acc0238-2620-4950-gastify-cravewallet.github.io
       - key: GOOGLE_PLACES_API_KEY
         sync: false
       - key: MERCADOPAGO_ACCESS_TOKEN

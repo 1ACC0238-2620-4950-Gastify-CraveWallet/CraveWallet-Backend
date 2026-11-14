@@ -20,6 +20,7 @@ Variables del servicio (solo en el proveedor, nunca en Git):
 | `DATABASE_USERNAME` | Usuario de PostgreSQL |
 | `DATABASE_PASSWORD` | Contraseña de PostgreSQL |
 | `JWT_SECRET` | Secreto aleatorio persistente de al menos 32 bytes UTF-8 |
+| `FLUTTER_WEB_ORIGIN` | Origen HTTPS exacto de Flutter Web, sin ruta ni `/` final; para GitHub Pages: `https://1acc0238-2620-4950-gastify-cravewallet.github.io` |
 | `GOOGLE_PLACES_API_KEY` | Clave de Places API (New) para habilitar sugerencias |
 | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`, `MERCADOPAGO_BACK_URL` | Credenciales y URL de retorno del entorno de prueba |
 | `MERCADOPAGO_EXPECTED_LIVE_MODE` | Booleano según el pago consultado en el entorno del equipo. Ver [configuración de Premium](premium-api.md#configuración-y-despliegue-en-render). |
@@ -86,7 +87,7 @@ y datos personales antes de incorporarlas al capítulo IV.
 | 4.2.1.4 Development Evidence | `27ee5ed` documenta el resumen por categoría y el ahorro estimado al cancelar. `3a59d60` integra Mercado Pago, con migración de facturación en `1fa0158`. |
 | 4.2.1.5 Testing Suite Evidence | 72 pruebas pasan con JDK 21 en la ejecución estándar y con los flujos de persistencia sobre PostgreSQL 18.4 local. `a8264f0` cubre el ahorro estimado y `80e55b0` el ciclo de facturación con el proveedor simulado. Las pruebas de Delivery cubren autenticación, validación y respuesta de sugerencias. |
 | 4.2.1.7 Services Documentation Evidence | El inventario del TB1 suma 16 operaciones. El AV2 incluye además las [cinco rutas de Premium](premium-api.md#contrato-rest) y [sugerencias de comercios](delivery-api.md#sugerencias-de-comercios). Los contratos de [suscripciones](subscriptions-api.md) incluyen ejemplos de edición y cancelación. |
-| 4.2.1.8 Software Deployment Evidence | El JAR con perfil `prod` aplicó V1–V5 sobre PostgreSQL 18.4 local, sirvió Swagger y conservó una suscripción y su sesión tras reiniciar. Completar con el SHA, URL HTTPS, capturas de Render y resultados de la prueba remota una vez conectada la nueva base. |
+| 4.2.1.8 Software Deployment Evidence | El JAR con perfil `prod` aplicó V1–V5 sobre PostgreSQL 18.4 local, sirvió Swagger y conservó una suscripción y su sesión tras reiniciar. En Render AV2 el servicio público opera en <https://cravewallet-api-av2.onrender.com> con `/actuator/health` (`200 OK`), `/v3/api-docs` y `/swagger-ui/index.html` activos. |
 
 ## Evidencia histórica del TB1
 

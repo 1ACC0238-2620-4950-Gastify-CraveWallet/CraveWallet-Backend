@@ -12,7 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "FLUTTER_WEB_ORIGIN=https://1acc0238-2620-4950-gastify-cravewallet.github.io")
 @AutoConfigureMockMvc
 class BackendBootstrapTest {
     @Autowired
@@ -40,6 +40,17 @@ class BackendBootstrapTest {
                         .header("Origin", "https://example.com")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deployedFlutterWebCanPreflightAuthenticatedRequests() throws Exception {
+        String origin = "https://1acc0238-2620-4950-gastify-cravewallet.github.io";
+        mockMvc.perform(options("/api/v1/users/me")
+                        .header("Origin", origin)
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers", "authorization"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", origin));
     }
 
     @Test
