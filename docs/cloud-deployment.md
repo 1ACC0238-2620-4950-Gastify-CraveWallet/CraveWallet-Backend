@@ -20,7 +20,7 @@ Variables del servicio (solo en el proveedor, nunca en Git):
 | `DATABASE_USERNAME` | Usuario de PostgreSQL |
 | `DATABASE_PASSWORD` | Contraseña de PostgreSQL |
 | `JWT_SECRET` | Secreto aleatorio persistente de al menos 32 bytes UTF-8 |
-| `FLUTTER_WEB_ORIGIN` | Origen HTTPS exacto de Flutter Web, sin ruta ni `/` final; para GitHub Pages: `https://1acc0238-2620-4950-gastify-cravewallet.github.io` |
+| `FLUTTER_WEB_ORIGIN` | Origen HTTPS exacto del sitio estático Flutter Web asignado por Render, sin ruta ni `/` final. |
 | `GOOGLE_PLACES_API_KEY` | Clave de Places API (New) para habilitar sugerencias |
 | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`, `MERCADOPAGO_BACK_URL` | Credenciales y URL de retorno del entorno de prueba |
 | `MERCADOPAGO_EXPECTED_LIVE_MODE` | Booleano según el pago consultado en el entorno del equipo. Ver [configuración de Premium](premium-api.md#configuración-y-despliegue-en-render). |
