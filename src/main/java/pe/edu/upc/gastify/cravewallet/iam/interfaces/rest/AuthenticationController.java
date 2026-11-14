@@ -20,19 +20,19 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Registrar cuenta e iniciar sesión — US01 / TS01")
+    @Operation(summary = "Register account and sign in — US01 / TS01")
     public AuthenticationResource register(@Valid @RequestBody Credentials resource) {
         return AuthResourceAssembler.authentication(service.register(resource.email(), resource.password()));
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Iniciar sesión — US02 / TS01")
+    @Operation(summary = "Sign in — US02 / TS01")
     public AuthenticationResource login(@Valid @RequestBody Credentials resource) {
         return AuthResourceAssembler.authentication(service.login(resource.email(), resource.password()));
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "Renovar y rotar el par de tokens; invalida la sesión anterior")
+    @Operation(summary = "Refresh and rotate token pair; invalidates the previous session")
     public AuthenticationResource refresh(@Valid @RequestBody RefreshRequest resource) {
         return AuthResourceAssembler.authentication(service.refresh(resource.refreshToken()));
     }
@@ -40,7 +40,7 @@ public class AuthenticationController {
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @SecurityRequirement(name = "bearerAuth")
-    @Operation(summary = "Cerrar la sesión actual e invalidar ambos tokens — US33")
+    @Operation(summary = "Sign out current session and invalidate both tokens — US33")
     public void logout(@AuthenticationPrincipal Jwt jwt) {
         service.logout(UUID.fromString(jwt.getSubject()), UUID.fromString(jwt.getId()));
     }

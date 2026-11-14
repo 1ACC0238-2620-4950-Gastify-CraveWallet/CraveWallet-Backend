@@ -29,7 +29,7 @@ public class PremiumController {
     }
 
     @GetMapping("/status")
-    @Operation(summary = "Consultar el estado del plan Premium")
+    @Operation(summary = "Get Premium plan status")
     public PremiumApplicationService.PremiumStatusView getStatus(
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -37,15 +37,15 @@ public class PremiumController {
     }
 
     @PostMapping("/checkout")
-    @Operation(summary = "Abrir un checkout recurrente de Mercado Pago",
-            description = "No requiere cuerpo. El importe y el correo se determinan en el backend.")
+    @Operation(summary = "Open a recurring Mercado Pago checkout",
+            description = "No request body required. Amount and payer email are determined by the backend.")
     public PremiumBillingService.CheckoutView checkout(@AuthenticationPrincipal Jwt jwt) {
         return billing.checkout(owner(jwt));
     }
 
     @PostMapping("/cancel")
-    @Operation(summary = "Cancelar la renovación y conservar el período pagado",
-            description = "Devuelve el estado local después de verificar la cancelación remota.")
+    @Operation(summary = "Cancel renewal and keep the paid period",
+            description = "Returns the local status after verifying remote cancellation.")
     public PremiumApplicationService.PremiumStatusView cancel(@AuthenticationPrincipal Jwt jwt) {
         UUID ownerId = owner(jwt);
         billing.cancel(ownerId);
@@ -53,7 +53,7 @@ public class PremiumController {
     }
 
     @GetMapping("/payments")
-    @Operation(summary = "Consultar el historial de pagos del usuario autenticado")
+    @Operation(summary = "Get payment history for the authenticated user")
     public List<PaymentEntry> payments(@AuthenticationPrincipal Jwt jwt) {
         return billing.payments(owner(jwt));
     }

@@ -72,7 +72,8 @@ public class MercadoPagoPaymentAdapter implements PremiumPaymentGateway {
     @Override
     public void checkCheckoutConfiguration() {
         if (accessToken.isBlank() || !webhookConfigured || !httpsUrl(backUrl)) {
-            throw new PremiumFailure(503, "Falta configurar el acceso, webhook o retorno HTTPS de Mercado Pago.");
+            throw new PremiumFailure(503, "premium.config.checkout_missing",
+                    "Mercado Pago access token, webhook, or HTTPS return URL is not configured.");
         }
     }
 
@@ -178,7 +179,9 @@ public class MercadoPagoPaymentAdapter implements PremiumPaymentGateway {
     }
 
     private Optional<JsonNode> exchange(RestClient.RequestHeadersSpec<?> request, boolean allowMissing, CheckoutCall checkoutCall) {
-        if (accessToken.isBlank()) throw new PremiumFailure(503, "Falta configurar el acceso a Mercado Pago.");
+        if (accessToken.isBlank())
+            throw new PremiumFailure(503, "premium.config.access_token_missing",
+                    "Mercado Pago access token is not configured.");
         try {
             JsonNode response = request.headers(headers -> headers.setBearerAuth(accessToken)).retrieve()
                     .onStatus(status -> status.is3xxRedirection(), (sent, received) -> { throw invalidResponse(); })
@@ -192,9 +195,9 @@ public class MercadoPagoPaymentAdapter implements PremiumPaymentGateway {
             if (checkoutCall == CheckoutCall.CREATE && (status == 400 || status == 401 || status == 403 || status == 422)) {
                 throw new PremiumFailure.CheckoutRejected();
             }
-            throw new PremiumFailure(503, "Mercado Pago no confirmó la operación.");
+            throw new PremiumFailure(503, "premium.provider.unconfirmed", "Mercado Pago did not confirm the operation.");
         } catch (RestClientException failure) {
-            throw new PremiumFailure(503, "Mercado Pago no está disponible temporalmente.");
+            throw new PremiumFailure(503, "premium.provider.unavailable", "Mercado Pago is temporarily unavailable.");
         }
     }
 
@@ -298,6 +301,7 @@ public class MercadoPagoPaymentAdapter implements PremiumPaymentGateway {
     }
 
     private static PremiumFailure invalidResponse() {
-        return new PremiumFailure(503, "La respuesta de Mercado Pago no se pudo verificar.");
+        return new PremiumFailure(503, "premium.provider.unverifiable_response",
+                "Mercado Pago response could not be verified.");
     }
 }

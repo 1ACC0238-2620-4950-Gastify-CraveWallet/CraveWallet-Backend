@@ -33,7 +33,8 @@ public class ExchangeRateService {
             }
         }
         if (cached == null || !now.isBefore(cached.updatedAt().plus(Duration.ofDays(7))))
-            throw new SubscriptionFailure(503, "Cotización temporalmente no disponible; se conserva el importe original.");
+            throw new SubscriptionFailure(503, "exchange.rate.unavailable",
+                    "Exchange rate temporarily unavailable; original amount is preserved.");
         BigDecimal rate = from == Currency.USD ? cached.rate()
                 : BigDecimal.ONE.divide(cached.rate(), 10, RoundingMode.HALF_UP);
         return new Rate(from, to, rate, cached.updatedAt(), fetchedAt, !fresh,

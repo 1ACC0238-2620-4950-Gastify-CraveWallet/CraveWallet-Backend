@@ -76,7 +76,8 @@ public class GooglePlacesAdapter implements MerchantSearchPort {
         } catch (RestClientException exception) {
             throw new DeliveryFailure(
                     503,
-                    "Sugerencias no disponibles. Puedes escribir el comercio manualmente."
+                    "delivery.merchants.unavailable",
+                    "Suggestions unavailable. You can enter the merchant manually."
             );
         }
     }

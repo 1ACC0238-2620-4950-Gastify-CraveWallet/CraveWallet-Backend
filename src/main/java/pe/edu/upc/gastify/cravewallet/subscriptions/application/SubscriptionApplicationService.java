@@ -45,7 +45,8 @@ public class SubscriptionApplicationService {
         if (!access.canRegister(activeCount)) {
             throw new SubscriptionFailure(
                     409,
-                    "El plan Free admite cinco suscripciones activas."
+                    "subscription.plan.free_limit",
+                    "The Free plan allows five active subscriptions."
             );
         }
         return repository.save(new Subscription(UUID.randomUUID(), owner, name, amount, currency,
@@ -68,10 +69,12 @@ public class SubscriptionApplicationService {
     }
 
     public Subscription edit(UUID owner, UUID id, BigDecimal amount, String category, LocalDate date) {
-        if (amount == null && category == null && date == null) throw new SubscriptionFailure(400, "Indica al menos un campo para editar.");
+        if (amount == null && category == null && date == null)
+            throw new SubscriptionFailure(400, "subscription.edit.empty", "Provide at least one field to edit.");
         if (date != null) validateDate(date);
         Subscription current = repository.findOwnedForUpdate(id, owner).orElseThrow(SubscriptionApplicationService::notFound);
-        if (current.status() == Subscription.Status.CANCELLED) throw new SubscriptionFailure(409, "No se puede editar una suscripción cancelada.");
+        if (current.status() == Subscription.Status.CANCELLED)
+            throw new SubscriptionFailure(409, "subscription.edit.cancelled", "Cannot edit a cancelled subscription.");
         return repository.save(current.edit(amount, category, date));
     }
 
@@ -81,9 +84,12 @@ public class SubscriptionApplicationService {
                 : repository.save(current.cancel(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS)));
     }
 
-    private static SubscriptionFailure notFound() { return new SubscriptionFailure(404, "Suscripción no encontrada."); }
+    private static SubscriptionFailure notFound() {
+        return new SubscriptionFailure(404, "subscription.not_found", "Subscription not found.");
+    }
     private static void validateDate(LocalDate date) {
         if (date == null || date.isBefore(LocalDate.now(ZoneId.of("America/Lima"))))
-            throw new SubscriptionFailure(400, "La próxima renovación debe ser hoy o una fecha futura (America/Lima).");
+            throw new SubscriptionFailure(400, "subscription.next_billing_date.invalid",
+                    "Next billing date must be today or a future date (America/Lima).");
     }
 }

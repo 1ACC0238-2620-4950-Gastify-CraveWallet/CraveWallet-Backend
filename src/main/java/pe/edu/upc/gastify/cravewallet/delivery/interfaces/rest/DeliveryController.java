@@ -26,21 +26,21 @@ public class DeliveryController {
     }
 
     @GetMapping("/merchants/suggestions")
-    @Operation(summary = "Buscar sugerencias de comercios en Lima",
-            description = "Busca por nombre (2 a 100 caracteres). Devuelve una lista vacía si no hay sugerencias.")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Búsqueda inválida")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Se requiere un JWT válido")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "Proveedor no disponible")
+    @Operation(summary = "Search merchant suggestions in Lima",
+            description = "Searches by name (2 to 100 characters). Returns an empty list if there are no suggestions.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid search query")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "A valid JWT is required")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "Provider unavailable")
     public List<MerchantSuggestion> suggestMerchants(@RequestParam String query) {
         return merchantSearch.search(query);
     }
 
     @PostMapping
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Gasto registrado")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Reintento reconocido")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Expense registered")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Idempotent retry acknowledged")
     public ResponseEntity<ExpenseResource> register(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RegisterRequest request) {
         if (request.expenseDate().getYear() < 1900 || request.expenseDate().getYear() > 9999)
-            throw new DeliveryFailure(400, "Año fuera de rango.");
+            throw new DeliveryFailure(400, "delivery.expense.year_out_of_range", "Year is out of range.");
         var result = service.register(owner(jwt), request.requestId(), request.merchant(), request.amount(), request.category(), request.expenseDate());
         return ResponseEntity.status(result.replayed() ? 200 : 201).body(ExpenseResource.from(result.expense()));
     }
@@ -50,9 +50,12 @@ public class DeliveryController {
                                                       @RequestParam(required = false) String month) {
         YearMonth now = YearMonth.now(ZoneId.of("America/Lima"));
         if (year == null && (month == null || month.equals("actual"))) return service.summary(owner(jwt), now);
-        if (year == null || month == null || month.equals("actual")) throw new DeliveryFailure(400, "Indica año y mes numérico juntos.");
+        if (year == null || month == null || month.equals("actual"))
+            throw new DeliveryFailure(400, "delivery.summary.year_and_month_required", "Provide numeric year and month together.");
         int monthNumber;
-        try { monthNumber = Integer.parseInt(month); } catch (NumberFormatException failure) { throw new DeliveryFailure(400, "Mes no válido."); }
+        try { monthNumber = Integer.parseInt(month); } catch (NumberFormatException failure) {
+            throw new DeliveryFailure(400, "delivery.summary.month_invalid", "Invalid month.");
+        }
         return service.summary(owner(jwt), period(year, monthNumber));
     }
     @PutMapping("/budget")
@@ -62,16 +65,29 @@ public class DeliveryController {
                 result.accumulated(), result.spendingLimit() == null ? null : result.spendingLimit().subtract(result.accumulated()), result.exceeded());
     }
     private YearMonth period(int year, int month) {
-        if (year < 1900 || year > 9999 || month < 1 || month > 12) throw new DeliveryFailure(400, "Período no válido.");
+        if (year < 1900 || year > 9999 || month < 1 || month > 12)
+            throw new DeliveryFailure(400, "delivery.period.invalid", "Invalid period.");
         return YearMonth.of(year, month);
     }
     private UUID owner(Jwt jwt) { return UUID.fromString(jwt.getSubject()); }
     @io.swagger.v3.oas.annotations.media.Schema(name = "DeliveryRegisterRequest")
-    public record RegisterRequest(@NotNull UUID requestId, @NotBlank @Size(max = 100) String merchant,
-                                  @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 10, fraction = 2) BigDecimal amount,
-                                  @NotBlank @Size(max = 60) String category, @NotNull LocalDate expenseDate) { }
-    public record BudgetRequest(@NotNull @Min(1900) @Max(9999) Integer year, @NotNull @Min(1) @Max(12) Integer month,
-                                @DecimalMin(value = "0", inclusive = false) @Digits(integer = 10, fraction = 2) BigDecimal spendingLimit) { }
+    public record RegisterRequest(@NotNull(message = "{validation.delivery.request_id.required}") UUID requestId,
+                                  @NotBlank(message = "{validation.delivery.merchant.required}")
+                                  @Size(max = 100, message = "{validation.delivery.merchant.size}") String merchant,
+                                  @NotNull(message = "{validation.delivery.amount.required}")
+                                  @DecimalMin(value = "0", inclusive = false, message = "{validation.delivery.amount.positive}")
+                                  @Digits(integer = 10, fraction = 2, message = "{validation.delivery.amount.digits}") BigDecimal amount,
+                                  @NotBlank(message = "{validation.delivery.category.required}")
+                                  @Size(max = 60, message = "{validation.delivery.category.size}") String category,
+                                  @NotNull(message = "{validation.delivery.expense_date.required}") LocalDate expenseDate) { }
+    public record BudgetRequest(@NotNull(message = "{validation.delivery.year.required}")
+                                @Min(value = 1900, message = "{validation.delivery.year.range}")
+                                @Max(value = 9999, message = "{validation.delivery.year.range}") Integer year,
+                                @NotNull(message = "{validation.delivery.month.required}")
+                                @Min(value = 1, message = "{validation.delivery.month.range}")
+                                @Max(value = 12, message = "{validation.delivery.month.range}") Integer month,
+                                @DecimalMin(value = "0", inclusive = false, message = "{validation.delivery.spending_limit.positive}")
+                                @Digits(integer = 10, fraction = 2, message = "{validation.delivery.spending_limit.digits}") BigDecimal spendingLimit) { }
     public record ExpenseResource(UUID id, UUID requestId, String merchant, BigDecimal amount, String currency, String category, LocalDate expenseDate) {
         static ExpenseResource from(DeliveryExpense e) { return new ExpenseResource(e.id(), e.requestId(), e.merchant(), e.amount(), "PEN", e.category(), e.expenseDate()); }
     }

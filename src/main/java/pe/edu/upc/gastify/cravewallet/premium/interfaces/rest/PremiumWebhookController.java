@@ -22,14 +22,15 @@ public class PremiumWebhookController {
     }
 
     @PostMapping("/api/v1/premium/webhook")
-    @Operation(summary = "Recibir una notificación firmada de Mercado Pago")
+    @Operation(summary = "Receive a signed notification from Mercado Pago")
     public void notify(@RequestHeader(value = "x-signature", required = false) String signature,
                        @RequestHeader(value = "x-request-id", required = false) String requestId,
                        @RequestParam(value = "data.id", required = false) String resourceId,
                        @RequestBody JsonNode event) {
         String verifiedId = signatures.verify(signature, requestId, resourceId);
         if (!verifiedId.equalsIgnoreCase(event.path("data").path("id").asText())) {
-            throw new PremiumFailure(400, "La notificación no coincide con el identificador firmado.");
+            throw new PremiumFailure(400, "premium.webhook.id_mismatch",
+                    "Notification does not match the signed identifier.");
         }
         billing.receiveNotification(requestId, event.path("type").asText(), verifiedId);
     }

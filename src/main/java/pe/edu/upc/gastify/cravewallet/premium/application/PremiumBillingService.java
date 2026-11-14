@@ -61,7 +61,8 @@ public class PremiumBillingService {
 
         Agreement agreement = start.recovering()
                 ? gateway.findCheckout(start.reference(), start.email())
-                    .orElseThrow(() -> conflict("Ya existe un checkout pendiente de confirmación."))
+                    .orElseThrow(() -> conflict("premium.checkout.pending_confirmation",
+                            "A checkout is already pending confirmation."))
                 : createAgreement(owner, start);
         if (!start.reference().equals(agreement.reference())) throw checkoutResponseMismatch("external_reference");
         if (!agreement.matchesMonthlyTerms()) throw checkoutResponseMismatch("recurring_terms");
@@ -76,11 +77,12 @@ public class PremiumBillingService {
         Checkout updated = transaction.execute(status -> {
             billing.lockOwner(owner);
             Checkout attempt = billing.findCheckout(start.reference()).orElseThrow();
-            if (!attempt.current()) throw conflict("El checkout ya cambió de estado.");
+            if (!attempt.current()) throw conflict("premium.checkout.state_changed", "Checkout state has already changed.");
             // Un checkout pendiente puede conservarse sin versión y sin conceder acceso.
             return persistAgreement(attempt, agreement);
         });
-        if (!"pending".equals(updated.status())) throw conflict("La suscripción ya cambió de estado.");
+        if (!"pending".equals(updated.status()))
+            throw conflict("premium.subscription.state_changed", "Subscription state has already changed.");
         return checkoutView(updated);
     }
 
@@ -101,7 +103,7 @@ public class PremiumBillingService {
         billing.lockOwner(owner);
         var membership = memberships.findByOwnerId(owner);
         if (membership.filter(value -> value.hasAccessAt(clock.instant())).isPresent()) {
-            throw conflict("Ya existe un período Premium vigente.");
+            throw conflict("premium.period.already_active", "An active Premium period already exists.");
         }
         var current = billing.currentCheckout(owner);
         if (current.isPresent() && current.get().canceledAt() == null) {
@@ -115,7 +117,7 @@ public class PremiumBillingService {
                 } else {
                     if (!knownAgreementStatus(remote) || !remote.matchesMonthlyTerms()) throw unavailable();
                     if (!"pending".equals(remote.status())) {
-                        throw conflict("La suscripción ya cambió de estado.");
+                        throw conflict("premium.subscription.state_changed", "Subscription state has already changed.");
                     }
                     return new CheckoutStart(null, null, checkoutView(persistAgreement(checkout, remote)), false);
                 }
@@ -123,7 +125,7 @@ public class PremiumBillingService {
                 gateway.checkCheckoutConfiguration();
                 return new CheckoutStart(checkout.reference(), payerEmail(owner), null, true);
             } else {
-                throw conflict("Ya existe un checkout o una suscripción en curso.");
+                throw conflict("premium.checkout.in_progress", "A checkout or subscription is already in progress.");
             }
         }
 
@@ -136,15 +138,17 @@ public class PremiumBillingService {
     }
 
     private String payerEmail(UUID owner) {
-        return users.findById(owner).orElseThrow(() -> new PremiumFailure(401, "Usuario no disponible.")).email();
+        return users.findById(owner)
+                .orElseThrow(() -> new PremiumFailure(401, "premium.user.unavailable", "User is not available.")).email();
     }
 
     @Transactional
     public void cancel(UUID owner) {
         billing.lockOwner(owner);
         Checkout checkout = billing.currentCheckout(owner)
-                .orElseThrow(() -> new PremiumFailure(404, "No hay una suscripción para cancelar."));
-        if (checkout.agreementId() == null) throw conflict("El checkout todavía no ha sido confirmado.");
+                .orElseThrow(() -> new PremiumFailure(404, "premium.cancel.not_found", "There is no subscription to cancel."));
+        if (checkout.agreementId() == null)
+            throw conflict("premium.checkout.not_confirmed", "Checkout has not been confirmed yet.");
 
         Agreement remote = gateway.findAgreement(checkout.agreementId()).orElseThrow(PremiumBillingService::unavailable);
         requireSameAgreement(checkout, remote);
@@ -244,8 +248,8 @@ public class PremiumBillingService {
     private void applyPayment(Checkout checkout, Invoice invoice, Payment payment) {
         if (!termsMatch(invoice.amount(), invoice.currency()) || !termsMatch(payment.amount(), payment.currency())) return;
         if (!Boolean.valueOf(expectedLiveMode).equals(payment.liveMode())) {
-            throw new PremiumFailure(503,
-                    "El live_mode del pago no coincide con MERCADOPAGO_EXPECTED_LIVE_MODE del backend.");
+            throw new PremiumFailure(503, "premium.payment.live_mode_mismatch",
+                    "Payment live_mode does not match the backend MERCADOPAGO_EXPECTED_LIVE_MODE.");
         }
         boolean approved = "approved".equals(payment.status());
         if (!approved && !"rejected".equals(payment.status())) return;
@@ -313,7 +317,7 @@ public class PremiumBillingService {
     }
 
     private static PremiumFailure unavailable() {
-        return new PremiumFailure(503, "Mercado Pago no confirmó la operación.");
+        return new PremiumFailure(503, "premium.provider.unconfirmed", "Mercado Pago did not confirm the operation.");
     }
 
     private static boolean knownAgreementStatus(Agreement agreement) {
@@ -325,8 +329,8 @@ public class PremiumBillingService {
         return unavailable();
     }
 
-    private static PremiumFailure conflict(String message) {
-        return new PremiumFailure(409, message);
+    private static PremiumFailure conflict(String messageKey, String defaultMessage) {
+        return new PremiumFailure(409, messageKey, defaultMessage);
     }
 
     private record CheckoutStart(UUID reference, String email, CheckoutView existing, boolean recovering) {}
