@@ -108,7 +108,7 @@ class MercadoPagoPaymentAdapterTest {
 
         assertThatThrownBy(() -> adapter.createMonthlyCheckout(UUID.randomUUID(), "buyer@example.com"))
                 .isInstanceOf(PremiumFailure.CheckoutRejected.class)
-                .hasMessage("Mercado Pago rechazó la creación del checkout.");
+                .hasMessage("Mercado Pago rejected the checkout creation.");
         assertThat(output.getAll()).contains("upstreamStatus=400", "providerCode=bad_request",
                         "providerCause=invalid_payer_email", "reason=payer_collector_mode_mismatch",
                         "providerRequestId=" + requestId)
@@ -139,9 +139,9 @@ class MercadoPagoPaymentAdapterTest {
 
         UUID reference = UUID.randomUUID();
         assertThatThrownBy(() -> adapter.createMonthlyCheckout(reference, "buyer@example.com"))
-                .isExactlyInstanceOf(PremiumFailure.class).hasMessage("Mercado Pago no confirmó la operación.");
+                .isExactlyInstanceOf(PremiumFailure.class).hasMessage("Mercado Pago did not confirm the operation.");
         assertThatThrownBy(() -> adapter.findCheckout(reference, "buyer@example.com"))
-                .isExactlyInstanceOf(PremiumFailure.class).hasMessage("Mercado Pago no confirmó la operación.");
+                .isExactlyInstanceOf(PremiumFailure.class).hasMessage("Mercado Pago did not confirm the operation.");
         assertThat(output.getAll()).contains("POST /preapproval upstreamStatus=500",
                         "GET /preapproval/search upstreamStatus=429")
                 .doesNotContain("buyer@example.com", "buyer%40example.com", "fixture-token", reference.toString());
@@ -196,7 +196,7 @@ class MercadoPagoPaymentAdapterTest {
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
         adapter.cancelAgreement("abc");
         assertThatThrownBy(() -> adapter.findAgreement("abc")).isInstanceOf(PremiumFailure.class)
-                .hasMessage("Mercado Pago no confirmó la operación.");
+                .hasMessage("Mercado Pago did not confirm the operation.");
         server.verify();
     }
 
@@ -204,6 +204,6 @@ class MercadoPagoPaymentAdapterTest {
     void absentCredentialsNeverCreateAFakeSession() {
         var unconfigured = new MercadoPagoPaymentAdapter(RestClient.create(), "", "", "");
         assertThatThrownBy(() -> unconfigured.createMonthlyCheckout(UUID.randomUUID(), "buyer@example.com"))
-                .isInstanceOf(PremiumFailure.class).hasMessageContaining("Falta configurar");
+                .isInstanceOf(PremiumFailure.class).hasMessageContaining("not configured");
     }
 }

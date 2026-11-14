@@ -257,7 +257,7 @@ class PremiumBillingIntegrationTest {
         }
         Invoice live = charge(agreement, START, PRICE, "PEN", "approved", true);
         notify(INVOICE_TOPIC, live.id()).andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.detail").value("El live_mode del pago no coincide con MERCADOPAGO_EXPECTED_LIVE_MODE del backend."));
+                .andExpect(jsonPath("$.detail").value("Payment live_mode does not match the backend MERCADOPAGO_EXPECTED_LIVE_MODE."));
         premiumStatus(user).andExpect(jsonPath("$.premium").value(false));
         payments(user).andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].status").value("rejected"));
     }
