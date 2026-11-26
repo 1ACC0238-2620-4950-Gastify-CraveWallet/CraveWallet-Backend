@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import pe.edu.upc.gastify.cravewallet.subscriptions.application.SubscriptionApplicationService;
+import pe.edu.upc.gastify.cravewallet.subscriptions.application.ConversionHistoryService;
 import pe.edu.upc.gastify.cravewallet.subscriptions.application.ExchangeRateService;
 import pe.edu.upc.gastify.cravewallet.subscriptions.application.SubscriptionFailure;
 import pe.edu.upc.gastify.cravewallet.subscriptions.domain.model.Subscription;
@@ -27,7 +28,11 @@ public class SubscriptionController {
     private static final ZoneId LIMA = ZoneId.of("America/Lima");
     private final SubscriptionApplicationService service;
     private final ExchangeRateService exchange;
-    public SubscriptionController(SubscriptionApplicationService service, ExchangeRateService exchange) { this.service = service; this.exchange = exchange; }
+    private final ConversionHistoryService conversionHistory;
+    public SubscriptionController(SubscriptionApplicationService service, ExchangeRateService exchange,
+                                  ConversionHistoryService conversionHistory) {
+        this.service = service; this.exchange = exchange; this.conversionHistory = conversionHistory;
+    }
 
     @PostMapping
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Subscription registered")
@@ -112,6 +117,17 @@ public class SubscriptionController {
         ExchangeRateService.Rate rate = usdToPenQuote();
         BigDecimal amountPen = rate == null ? null : amount.multiply(rate.rate()).setScale(2, RoundingMode.HALF_UP);
         return new EstimatedSavings(amount, cancelled.currency(), amountPen, rate);
+    }
+
+    @GetMapping("/{id}/exchange-rate-history")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Exchange rate applied to past billing cycles",
+            description = "For a USD subscription, lists up to 12 previous billing cycles with the USD/PEN rate in force on each "
+                    + "billing date and the resulting amount in PEN, plus the percentage variation against the previous charge. "
+                    + "Cycles are reconstructed from the quotes stored by the service, so history starts when quotes began to be stored. "
+                    + "PEN subscriptions return an empty list.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Subscription not found for the authenticated user")
+    public ConversionHistoryService.History exchangeRateHistory(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        return conversionHistory.of(owner(jwt), id);
     }
 
     @GetMapping("/{id}/reminder")

@@ -2,6 +2,8 @@ package pe.edu.upc.gastify.cravewallet.subscriptions.application;
 
 import org.springframework.stereotype.Service;
 import pe.edu.upc.gastify.cravewallet.subscriptions.domain.model.Subscription.Currency;
+import org.springframework.beans.factory.annotation.Autowired;
+import pe.edu.upc.gastify.cravewallet.subscriptions.domain.services.ExchangeRateHistoryPort;
 import pe.edu.upc.gastify.cravewallet.subscriptions.domain.services.ExchangeRatePort;
 import java.math.*;
 import java.time.*;
@@ -13,7 +15,12 @@ public class ExchangeRateService {
     private ExchangeRatePort.ProviderRate cached;
     private Instant fetchedAt;
     private Instant retryAt = Instant.MIN;
-    public ExchangeRateService(ExchangeRatePort provider, Clock clock) { this.provider = provider; this.clock = clock; }
+    private final ExchangeRateHistoryPort history;
+    public ExchangeRateService(ExchangeRatePort provider, Clock clock) { this(provider, clock, null); }
+    @Autowired
+    public ExchangeRateService(ExchangeRatePort provider, Clock clock, ExchangeRateHistoryPort history) {
+        this.provider = provider; this.clock = clock; this.history = history;
+    }
 
     /** Una consulta simultánea al proveedor por instancia; caché 24h y retroceso 60s tras fallo. */
     public synchronized Rate quote(Currency from, Currency to) {
@@ -28,6 +35,7 @@ public class ExchangeRateService {
                         || !now.isBefore(response.updatedAt().plus(Duration.ofDays(7))))
                     throw new IllegalArgumentException("Fecha de cotización fuera de rango.");
                 cached = response; fetchedAt = now; fresh = true;
+                remember(response, now);
             } catch (RuntimeException failure) {
                 retryAt = now.plusSeconds(60);
             }
@@ -39,6 +47,14 @@ public class ExchangeRateService {
                 : BigDecimal.ONE.divide(cached.rate(), 10, RoundingMode.HALF_UP);
         return new Rate(from, to, rate, cached.updatedAt(), fetchedAt, !fresh,
                 "ExchangeRate-API", "https://www.exchangerate-api.com");
+    }
+    private void remember(ExchangeRatePort.ProviderRate response, Instant now) {
+        if (history == null) return;
+        try {
+            history.record(response, now);
+        } catch (RuntimeException ignored) {
+            // History is informative; a storage failure must not block the current quote.
+        }
     }
     public record Rate(Currency from, Currency to, BigDecimal rate, Instant updatedAt, Instant fetchedAt,
                        boolean stale, String source, String attributionUrl) { }
