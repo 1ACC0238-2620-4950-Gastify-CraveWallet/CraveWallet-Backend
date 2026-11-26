@@ -141,6 +141,59 @@ class DeliveryIntegrationTest {
                 first.get("requestId"), second.get("requestId"))).isEqualTo(2);
     }
 
+    @Test
+    void listCorrectAndDeleteKeepMonthlyAccumulationConsistent() throws Exception {
+        String token = account();
+        budget(token, "100").andExpect(status().isOk());
+        JsonNode created = json.readTree(register(token, body(UUID.randomUUID(), 80, DATE))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+        String id = created.get("id").asText();
+        register(token, body(UUID.randomUUID(), 10, DATE)).andExpect(status().isCreated());
+
+        mvc.perform(get(ROOT).param("year", "2026").param("month", "9").header("Authorization", token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
+
+        Map<String, Object> correction = Map.of("merchant", "Pizzeria", "amount", 30, "category", "Comida", "expenseDate", DATE.toString());
+        mvc.perform(put(ROOT + "/" + id).header("Authorization", token).contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(correction)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.merchant").value("Pizzeria")).andExpect(jsonPath("$.amount").value(30));
+        summary(token).andExpect(jsonPath("$.total").value(40)).andExpect(jsonPath("$.exceeded").value(false));
+        budget(token, "100").andExpect(jsonPath("$.accumulated").value(40));
+
+        Map<String, Object> moved = Map.of("merchant", "Pizzeria", "amount", 30, "category", "Comida",
+                "expenseDate", DATE.minusMonths(1).toString());
+        mvc.perform(put(ROOT + "/" + id).header("Authorization", token).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(moved))).andExpect(status().isOk());
+        summary(token).andExpect(jsonPath("$.total").value(10));
+        budget(token, "100").andExpect(jsonPath("$.accumulated").value(10));
+
+        mvc.perform(delete(ROOT + "/" + id).header("Authorization", token)).andExpect(status().isNoContent());
+        mvc.perform(get(ROOT).param("year", "2026").param("month", "8").header("Authorization", token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        mvc.perform(delete(ROOT + "/" + id).header("Authorization", token)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void correctionAndDeletionAreRestrictedToTheOwner() throws Exception {
+        String owner = account(), other = account();
+        String id = json.readTree(register(owner, body(UUID.randomUUID(), 25, DATE))
+                .andReturn().getResponse().getContentAsString()).get("id").asText();
+        Map<String, Object> correction = Map.of("merchant", "Otro", "amount", 1, "category", "Comida", "expenseDate", DATE.toString());
+
+        mvc.perform(put(ROOT + "/" + id).header("Authorization", other).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(correction))).andExpect(status().isNotFound());
+        mvc.perform(delete(ROOT + "/" + id).header("Authorization", other)).andExpect(status().isNotFound());
+        mvc.perform(delete(ROOT + "/" + id)).andExpect(status().isUnauthorized());
+        mvc.perform(get(ROOT).param("year", "2026")
+                .header("Authorization", owner)).andExpect(status().isBadRequest());
+        Map<String, Object> future = Map.of("merchant", "Otro", "amount", 1, "category", "Comida",
+                "expenseDate", LocalDate.now(ZoneId.of("America/Lima")).plusDays(1).toString());
+        mvc.perform(put(ROOT + "/" + id).header("Authorization", owner).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(future))).andExpect(status().isBadRequest());
+        summary(owner).andExpect(jsonPath("$.total").value(25));
+    }
+
     private org.springframework.test.web.servlet.ResultActions register(String token, Map<String, Object> body) throws Exception {
         return mvc.perform(post(ROOT).header("Authorization", token).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)));
     }

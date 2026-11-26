@@ -12,6 +12,10 @@ public record MonthlyBudget(UUID id, UUID ownerId, YearMonth period, BigDecimal 
             throw new IllegalArgumentException("Presupuesto no válido.");
     }
     public MonthlyBudget add(BigDecimal amount) { return new MonthlyBudget(id, ownerId, period, spendingLimit, accumulated.add(amount)); }
+    public MonthlyBudget subtract(BigDecimal amount) {
+        BigDecimal remaining = accumulated.subtract(amount);
+        return new MonthlyBudget(id, ownerId, period, spendingLimit, remaining.signum() < 0 ? BigDecimal.ZERO : remaining);
+    }
     public MonthlyBudget withLimit(BigDecimal limit) { return new MonthlyBudget(id, ownerId, period, limit, accumulated); }
     public boolean exceeded() { return spendingLimit != null && accumulated.compareTo(spendingLimit) > 0; }
 }

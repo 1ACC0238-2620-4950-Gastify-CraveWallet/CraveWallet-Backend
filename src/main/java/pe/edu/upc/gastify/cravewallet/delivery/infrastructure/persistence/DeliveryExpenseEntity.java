@@ -20,5 +20,8 @@ public class DeliveryExpenseEntity {
         id = e.id(); ownerId = e.ownerId(); requestId = e.requestId(); merchant = e.merchant();
         amount = e.amount(); category = e.category(); expenseDate = e.expenseDate();
     }
+    public void update(DeliveryExpense e) {
+        merchant = e.merchant(); amount = e.amount(); category = e.category(); expenseDate = e.expenseDate();
+    }
     public DeliveryExpense toDomain() { return new DeliveryExpense(id, ownerId, requestId, merchant, amount, category, expenseDate); }
 }

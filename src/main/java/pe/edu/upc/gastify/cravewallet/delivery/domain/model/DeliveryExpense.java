@@ -14,6 +14,9 @@ public record DeliveryExpense(UUID id, UUID ownerId, UUID requestId, String merc
             throw new IllegalArgumentException("Gasto no válido.");
         merchant = merchant.strip(); category = category.strip();
     }
+    public DeliveryExpense correct(String merchant, BigDecimal amount, String category, LocalDate expenseDate) {
+        return new DeliveryExpense(id, ownerId, requestId, merchant, amount, category, expenseDate);
+    }
     public boolean sameRequest(DeliveryExpense other) {
         return requestId.equals(other.requestId) && merchant.equals(other.merchant)
                 && amount.compareTo(other.amount) == 0 && category.equals(other.category)

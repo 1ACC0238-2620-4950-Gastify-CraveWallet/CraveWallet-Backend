@@ -42,6 +42,43 @@ public class DeliveryApplicationService {
             events.publishEvent(new LimitExceeded(owner, period, updated.spendingLimit(), updated.accumulated()));
         return new Registration(requested, false);
     }
+    @Transactional(readOnly = true)
+    public List<DeliveryExpense> list(UUID owner, YearMonth period) { return expenses.findPeriod(owner, period); }
+
+    public DeliveryExpense correct(UUID owner, UUID expenseId, String merchant, BigDecimal amount, String category, LocalDate date) {
+        if (date.isAfter(LocalDate.now(ZoneId.of("America/Lima"))))
+            throw new DeliveryFailure(400, "delivery.expense.future_date", "Expense date cannot be in the future.");
+        ownerLock.acquire(owner);
+        DeliveryExpense previous = owned(owner, expenseId);
+        DeliveryExpense corrected = previous.correct(merchant, amount, category, date);
+        YearMonth oldPeriod = YearMonth.from(previous.expenseDate());
+        YearMonth newPeriod = YearMonth.from(corrected.expenseDate());
+        MonthlyBudget oldBudget = budgets.find(owner, oldPeriod).orElseGet(() -> emptyBudget(owner, oldPeriod));
+        budgets.save(oldBudget.subtract(previous.amount()));
+        MonthlyBudget target = budgets.find(owner, newPeriod).orElseGet(() -> emptyBudget(owner, newPeriod));
+        MonthlyBudget updated = target.add(corrected.amount());
+        budgets.save(updated);
+        expenses.update(corrected);
+        events.publishEvent(new ExpenseCorrected(corrected.id(), owner, previous.amount(), corrected.amount(), corrected.expenseDate()));
+        if (!target.exceeded() && updated.exceeded())
+            events.publishEvent(new LimitExceeded(owner, newPeriod, updated.spendingLimit(), updated.accumulated()));
+        return corrected;
+    }
+
+    public void delete(UUID owner, UUID expenseId) {
+        ownerLock.acquire(owner);
+        DeliveryExpense expense = owned(owner, expenseId);
+        YearMonth period = YearMonth.from(expense.expenseDate());
+        budgets.find(owner, period).ifPresent(budget -> budgets.save(budget.subtract(expense.amount())));
+        expenses.delete(expense);
+        events.publishEvent(new ExpenseDeleted(expense.id(), owner, expense.amount(), expense.expenseDate()));
+    }
+
+    private DeliveryExpense owned(UUID owner, UUID expenseId) {
+        return expenses.findOwned(owner, expenseId)
+                .orElseThrow(() -> new DeliveryFailure(404, "delivery.expense.not_found", "Expense not found."));
+    }
+
     public MonthlyBudget setBudget(UUID owner, YearMonth period, BigDecimal limit) {
         ownerLock.acquire(owner);
         MonthlyBudget current = budgets.find(owner, period).orElseGet(() -> emptyBudget(owner, period));
@@ -71,5 +108,7 @@ public class DeliveryApplicationService {
                           BigDecimal remaining, boolean exceeded, Map<String, BigDecimal> totalsByCategory,
                           Map<Integer, BigDecimal> totalsByWeek) { }
     public record ExpenseRegistered(UUID expenseId, UUID ownerId, BigDecimal amount, LocalDate date) { }
+    public record ExpenseCorrected(UUID expenseId, UUID ownerId, BigDecimal previousAmount, BigDecimal amount, LocalDate date) { }
+    public record ExpenseDeleted(UUID expenseId, UUID ownerId, BigDecimal amount, LocalDate date) { }
     public record LimitExceeded(UUID ownerId, YearMonth period, BigDecimal limit, BigDecimal accumulated) { }
 }

@@ -21,4 +21,10 @@ public class JpaDeliveryExpenseRepository implements DeliveryExpenseRepository {
                 .setParameter("owner", owner).setParameter("start", period.atDay(1))
                 .setParameter("end", period.plusMonths(1).atDay(1)).getResultList().stream().map(DeliveryExpenseEntity::toDomain).toList();
     }
+    public Optional<DeliveryExpense> findOwned(UUID owner, UUID id) {
+        return Optional.ofNullable(em.find(DeliveryExpenseEntity.class, id)).map(DeliveryExpenseEntity::toDomain)
+                .filter(expense -> expense.ownerId().equals(owner));
+    }
+    public void update(DeliveryExpense expense) { em.find(DeliveryExpenseEntity.class, expense.id()).update(expense); em.flush(); }
+    public void delete(DeliveryExpense expense) { em.remove(em.find(DeliveryExpenseEntity.class, expense.id())); em.flush(); }
 }

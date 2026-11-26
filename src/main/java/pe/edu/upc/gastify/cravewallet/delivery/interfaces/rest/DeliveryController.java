@@ -44,6 +44,39 @@ public class DeliveryController {
         var result = service.register(owner(jwt), request.requestId(), request.merchant(), request.amount(), request.category(), request.expenseDate());
         return ResponseEntity.status(result.replayed() ? 200 : 201).body(ExpenseResource.from(result.expense()));
     }
+    @GetMapping
+    @Operation(summary = "List delivery expenses of a month",
+            description = "Returns the authenticated user's expenses for the given year and month (current month in Lima when omitted), ordered by date.")
+    public List<ExpenseResource> list(@AuthenticationPrincipal Jwt jwt,
+                                      @RequestParam(required = false) Integer year,
+                                      @RequestParam(required = false) Integer month) {
+        if ((year == null) != (month == null))
+            throw new DeliveryFailure(400, "delivery.summary.year_and_month_required", "Provide numeric year and month together.");
+        YearMonth period = year == null ? YearMonth.now(ZoneId.of("America/Lima")) : period(year, month);
+        return service.list(owner(jwt), period).stream().map(ExpenseResource::from).toList();
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Correct a delivery expense",
+            description = "Replaces merchant, amount, category and date of an expense registered by mistake. The monthly accumulated amount is moved accordingly.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Expense corrected")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Expense not found for the authenticated user")
+    public ExpenseResource correct(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody CorrectionRequest request) {
+        if (request.expenseDate().getYear() < 1900 || request.expenseDate().getYear() > 9999)
+            throw new DeliveryFailure(400, "delivery.expense.year_out_of_range", "Year is out of range.");
+        return ExpenseResource.from(service.correct(owner(jwt), id, request.merchant(), request.amount(), request.category(), request.expenseDate()));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a delivery expense",
+            description = "Deletes an expense registered by mistake and subtracts it from the monthly accumulated amount.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Expense deleted")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Expense not found for the authenticated user")
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        service.delete(owner(jwt), id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/summary")
     public DeliveryApplicationService.Summary summary(@AuthenticationPrincipal Jwt jwt,
                                                       @RequestParam(required = false) Integer year,
@@ -80,6 +113,15 @@ public class DeliveryController {
                                   @NotBlank(message = "{validation.delivery.category.required}")
                                   @Size(max = 60, message = "{validation.delivery.category.size}") String category,
                                   @NotNull(message = "{validation.delivery.expense_date.required}") LocalDate expenseDate) { }
+    @io.swagger.v3.oas.annotations.media.Schema(name = "DeliveryCorrectionRequest")
+    public record CorrectionRequest(@NotBlank(message = "{validation.delivery.merchant.required}")
+                                    @Size(max = 100, message = "{validation.delivery.merchant.size}") String merchant,
+                                    @NotNull(message = "{validation.delivery.amount.required}")
+                                    @DecimalMin(value = "0", inclusive = false, message = "{validation.delivery.amount.positive}")
+                                    @Digits(integer = 10, fraction = 2, message = "{validation.delivery.amount.digits}") BigDecimal amount,
+                                    @NotBlank(message = "{validation.delivery.category.required}")
+                                    @Size(max = 60, message = "{validation.delivery.category.size}") String category,
+                                    @NotNull(message = "{validation.delivery.expense_date.required}") LocalDate expenseDate) { }
     public record BudgetRequest(@NotNull(message = "{validation.delivery.year.required}")
                                 @Min(value = 1900, message = "{validation.delivery.year.range}")
                                 @Max(value = 9999, message = "{validation.delivery.year.range}") Integer year,
