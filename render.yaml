@@ -1,7 +1,7 @@
 # AV2 web service. PostgreSQL is managed separately and injected through Environment.
 services:
   - type: web
-    name: cravewallet-api
+    name: cravewallet-api-av2
     runtime: docker
     plan: free
     region: oregon

@@ -19,13 +19,13 @@ public class UserController {
     public UserController(AuthApplicationService service) { this.service = service; }
 
     @GetMapping
-    @Operation(summary = "Consultar el perfil de la identidad autenticada")
+    @Operation(summary = "Get the authenticated user profile")
     public ProfileResource profile(@AuthenticationPrincipal Jwt jwt) {
         return AuthResourceAssembler.profile(service.profile(UUID.fromString(jwt.getSubject())));
     }
 
     @PatchMapping
-    @Operation(summary = "Confirmar PEN como moneda de referencia — US03 / TS01")
+    @Operation(summary = "Confirm PEN as reference currency — US03 / TS01")
     public ProfileResource update(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ProfileRequest resource) {
         return AuthResourceAssembler.profile(service.updateProfile(UUID.fromString(jwt.getSubject()), resource.referenceCurrency()));
     }

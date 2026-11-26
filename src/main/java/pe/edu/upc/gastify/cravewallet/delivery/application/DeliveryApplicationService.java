@@ -21,12 +21,14 @@ public class DeliveryApplicationService {
         this.expenses = expenses; this.budgets = budgets; this.ownerLock = ownerLock; this.events = events;
     }
     public Registration register(UUID owner, UUID requestId, String merchant, BigDecimal amount, String category, LocalDate date) {
-        if (date.isAfter(LocalDate.now(ZoneId.of("America/Lima")))) throw new DeliveryFailure(400, "La fecha del gasto no puede ser futura.");
+        if (date.isAfter(LocalDate.now(ZoneId.of("America/Lima"))))
+            throw new DeliveryFailure(400, "delivery.expense.future_date", "Expense date cannot be in the future.");
         DeliveryExpense requested = new DeliveryExpense(UUID.randomUUID(), owner, requestId, merchant, amount, category, date);
         ownerLock.acquire(owner);
         var prior = expenses.findByRequest(owner, requestId);
         if (prior.isPresent()) {
-            if (!prior.get().sameRequest(requested)) throw new DeliveryFailure(409, "El identificador de solicitud ya tiene otros datos.");
+            if (!prior.get().sameRequest(requested))
+                throw new DeliveryFailure(409, "delivery.expense.request_id_conflict", "Request identifier already exists with different data.");
             return new Registration(prior.get(), true);
         }
         YearMonth period = YearMonth.from(date);

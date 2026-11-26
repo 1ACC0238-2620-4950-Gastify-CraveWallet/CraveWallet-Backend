@@ -70,7 +70,7 @@ public class SecurityConfiguration {
         if (!flutterWebOrigin.isBlank()) origins.add(flutterWebOrigin);
         configuration.setAllowedOriginPatterns(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept-Language"));
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/v1/**", configuration);
         return source;
