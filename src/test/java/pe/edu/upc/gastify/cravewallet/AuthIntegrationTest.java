@@ -80,7 +80,7 @@ class AuthIntegrationTest {
         for (String failedEmail : List.of(email, email())) {
             mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                             .content(json.writeValueAsString(Map.of("email", failedEmail, "password", "WrongPassword1"))))
-                    .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.detail").value("Credenciales no válidas."));
+                    .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.detail").value("Invalid credentials."));
         }
     }
 

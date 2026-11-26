@@ -44,10 +44,11 @@ public class AuthApplicationService {
         if (password.length() < 8 || password.getBytes(StandardCharsets.UTF_8).length > 72
                 || password.chars().noneMatch(Character::isLetter)
                 || password.chars().noneMatch(Character::isDigit)) {
-            throw new AuthFailure(400, "La contraseña debe tener al menos 8 caracteres, letras y números, y como máximo 72 bytes UTF-8.");
+            throw new AuthFailure(400, "auth.password.invalid",
+                    "Password must be at least 8 characters long, include letters and numbers, and be at most 72 UTF-8 bytes.");
         }
         if (users.findByEmail(normalized).isPresent()) {
-            throw new AuthFailure(409, "El correo ya está en uso.");
+            throw new AuthFailure(409, "auth.email.in_use", "Email is already in use.");
         }
         User user = users.save(new User(UUID.randomUUID(), normalized, passwords.hash(password), "PEN"));
         return newSession(user);
@@ -58,7 +59,7 @@ public class AuthApplicationService {
         String hash = user == null ? dummyHash : user.passwordHash();
         boolean valid = password.getBytes(StandardCharsets.UTF_8).length <= 72 && passwords.matches(password, hash);
         if (user == null || !valid) {
-            throw new AuthFailure(401, "Credenciales no válidas.");
+            throw new AuthFailure(401, "auth.credentials.invalid", "Invalid credentials.");
         }
         return newSession(user);
     }
@@ -66,7 +67,7 @@ public class AuthApplicationService {
     public Authentication refresh(String refreshToken) {
         Session old = sessions.findByRefreshHashForUpdate(digest(refreshToken))
                 .filter(session -> session.activeAt(Instant.now()))
-                .orElseThrow(() -> new AuthFailure(401, "Token de renovación no válido."));
+                .orElseThrow(() -> new AuthFailure(401, "auth.refresh_token.invalid", "Invalid refresh token."));
         User user = requireUser(old.userId());
         sessions.save(old.revoke());
         return newSession(user);
@@ -75,7 +76,7 @@ public class AuthApplicationService {
     public void logout(UUID userId, UUID sessionId) {
         Session session = sessions.findById(sessionId)
                 .filter(item -> item.userId().equals(userId))
-                .orElseThrow(() -> new AuthFailure(401, "Sesión no válida."));
+                .orElseThrow(() -> new AuthFailure(401, "auth.session.invalid", "Invalid session."));
         sessions.save(session.revoke());
     }
 
@@ -84,13 +85,13 @@ public class AuthApplicationService {
 
     public User updateProfile(UUID userId, String referenceCurrency) {
         if (!"PEN".equals(referenceCurrency)) {
-            throw new AuthFailure(400, "La moneda de referencia debe ser PEN.");
+            throw new AuthFailure(400, "auth.reference_currency.invalid", "Reference currency must be PEN.");
         }
         return users.save(requireUser(userId).withReferenceCurrency(referenceCurrency));
     }
 
     private User requireUser(UUID id) {
-        return users.findById(id).orElseThrow(() -> new AuthFailure(401, "Sesión no válida."));
+        return users.findById(id).orElseThrow(() -> new AuthFailure(401, "auth.session.invalid", "Invalid session."));
     }
 
     private Authentication newSession(User user) {

@@ -12,7 +12,7 @@ public class OpenApiConfiguration {
     OpenAPI craveWalletOpenApi() {
         return new OpenAPI()
                 .info(new Info().title("CraveWallet Backend").version("0.1.0")
-                        .description("Autenticación, perfil, suscripciones, cotización, datos de recordatorios y gastos/presupuesto. Facturación pendiente."))
+                        .description("Authentication, profile, subscriptions, exchange rates, reminder data, delivery expenses/budgets, and Premium billing."))
                 .schemaRequirement("bearerAuth", new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT"));
     }

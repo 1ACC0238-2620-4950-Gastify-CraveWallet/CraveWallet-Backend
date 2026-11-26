@@ -62,7 +62,7 @@ class PortfolioConversionTest {
         var pen = new Subscription(UUID.randomUUID(), owner, "Netflix", new BigDecimal("12.00"), Subscription.Currency.PEN,
                 "Streaming", Subscription.BillingCycle.MONTHLY, LocalDate.of(2026, 11, 8), Subscription.Status.ACTIVE, null);
         when(service.list(owner, Subscription.Status.ACTIVE, null, null)).thenReturn(List.of(subscription, pen));
-        return new SubscriptionController(service, new ExchangeRateService(provider, Clock.systemUTC()));
+        return new SubscriptionController(service, new ExchangeRateService(provider, Clock.systemUTC()), null);
     }
 
     private SubscriptionController.CancellationResource cancelAt(Instant cancelledAt, ExchangeRatePort provider) {
@@ -70,6 +70,6 @@ class PortfolioConversionTest {
         var subscription = new Subscription(UUID.randomUUID(), owner, "Annual", BigDecimal.ONE, Subscription.Currency.USD,
                 "Trabajo", Subscription.BillingCycle.ANNUAL, LocalDate.of(2026, 11, 8), Subscription.Status.CANCELLED, cancelledAt);
         when(service.cancel(owner, subscription.id())).thenReturn(subscription);
-        return new SubscriptionController(service, new ExchangeRateService(provider, Clock.systemUTC())).cancel(jwt(), subscription.id());
+        return new SubscriptionController(service, new ExchangeRateService(provider, Clock.systemUTC()), null).cancel(jwt(), subscription.id());
     }
 }

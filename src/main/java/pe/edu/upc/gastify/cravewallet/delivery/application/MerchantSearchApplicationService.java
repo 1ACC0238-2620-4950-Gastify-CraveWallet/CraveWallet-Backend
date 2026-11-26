@@ -23,14 +23,16 @@ public class MerchantSearchApplicationService {
         if (query == null || query.strip().length() < 2) {
             throw new DeliveryFailure(
                     400,
-                    "La búsqueda debe contener al menos 2 caracteres."
+                    "delivery.merchants.query_too_short",
+                    "Search query must contain at least 2 characters."
             );
         }
 
         if (query.strip().length() > 100) {
             throw new DeliveryFailure(
                     400,
-                    "La búsqueda no puede superar los 100 caracteres."
+                    "delivery.merchants.query_too_long",
+                    "Search query cannot exceed 100 characters."
             );
         }
 

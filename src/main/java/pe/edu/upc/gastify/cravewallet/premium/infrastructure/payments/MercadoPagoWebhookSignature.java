@@ -26,7 +26,9 @@ public class MercadoPagoWebhookSignature {
     }
 
     public String verify(String signature, String requestId, String dataId) {
-        if (secret.isBlank()) throw new PremiumFailure(503, "Falta configurar la firma de Mercado Pago.");
+        if (secret.isBlank())
+            throw new PremiumFailure(503, "premium.config.webhook_secret_missing",
+                    "Mercado Pago webhook signature is not configured.");
         if (signature == null || signature.length() > 256 || requestId == null || dataId == null
                 || !requestId.matches("[A-Za-z0-9_-]{1,128}") || !dataId.matches("[A-Za-z0-9_-]{1,128}")) {
             throw invalidSignature();
@@ -62,6 +64,6 @@ public class MercadoPagoWebhookSignature {
     }
 
     private static PremiumFailure invalidSignature() {
-        return new PremiumFailure(401, "Firma de Mercado Pago no válida.");
+        return new PremiumFailure(401, "premium.webhook.invalid_signature", "Invalid Mercado Pago signature.");
     }
 }
