@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 import pe.edu.upc.gastify.cravewallet.subscriptions.domain.model.Subscription;
 import pe.edu.upc.gastify.cravewallet.subscriptions.domain.repositories.SubscriptionRepository;
 import pe.edu.upc.gastify.cravewallet.subscriptions.domain.services.PlanAccessPort;
+import pe.edu.upc.gastify.cravewallet.subscriptions.domain.services.SubscriptionTermsHistoryPort;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -19,15 +20,18 @@ public class SubscriptionApplicationService {
     private final SubscriptionRepository repository;
     private final OwnerRegistrationLock ownerLock;
     private final PlanAccessPort planAccess;
+    private final SubscriptionTermsHistoryPort termsHistory;
 
     public SubscriptionApplicationService(
             SubscriptionRepository repository,
             OwnerRegistrationLock ownerLock,
-            PlanAccessPort planAccess
+            PlanAccessPort planAccess,
+            SubscriptionTermsHistoryPort termsHistory
     ) {
         this.repository = repository;
         this.ownerLock = ownerLock;
         this.planAccess = planAccess;
+        this.termsHistory = termsHistory;
     }
 
 
@@ -49,8 +53,10 @@ public class SubscriptionApplicationService {
                     "The Free plan allows five active subscriptions."
             );
         }
-        return repository.save(new Subscription(UUID.randomUUID(), owner, name, amount, currency,
+        Subscription created = repository.save(new Subscription(UUID.randomUUID(), owner, name, amount, currency,
                 category, cycle, date, Subscription.Status.ACTIVE, null));
+        termsHistory.record(created.id(), SubscriptionTermsHistoryPort.Terms.of(created, now()));
+        return created;
     }
 
     @Transactional(readOnly = true)
@@ -75,7 +81,11 @@ public class SubscriptionApplicationService {
         Subscription current = repository.findOwnedForUpdate(id, owner).orElseThrow(SubscriptionApplicationService::notFound);
         if (current.status() == Subscription.Status.CANCELLED)
             throw new SubscriptionFailure(409, "subscription.edit.cancelled", "Cannot edit a cancelled subscription.");
-        return repository.save(current.edit(amount, category, date));
+        Subscription edited = repository.save(current.edit(amount, category, date));
+        boolean termsChanged = edited.amount().compareTo(current.amount()) != 0
+                || !edited.nextBillingDate().equals(current.nextBillingDate());
+        if (termsChanged) termsHistory.record(edited.id(), SubscriptionTermsHistoryPort.Terms.of(edited, now()));
+        return edited;
     }
 
     public Subscription cancel(UUID owner, UUID id) {
@@ -83,6 +93,8 @@ public class SubscriptionApplicationService {
         return current.status() == Subscription.Status.CANCELLED ? current
                 : repository.save(current.cancel(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS)));
     }
+
+    private static Instant now() { return Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS); }
 
     private static SubscriptionFailure notFound() {
         return new SubscriptionFailure(404, "subscription.not_found", "Subscription not found.");

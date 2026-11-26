@@ -59,6 +59,45 @@ class ExchangeRateHistoryIntegrationTest {
     }
 
     @Test
+    void editingAmountOrDateDoesNotRewritePastCycles() throws Exception {
+        LocalDate today = LocalDate.now(LIMA);
+        LocalDate next = today.plusDays(10);
+        LocalDate oneCycleAgo = next.minusMonths(1);
+        db.update("delete from exchange_rate_snapshots");
+        snapshot(oneCycleAgo.minusDays(1), "3.70000000");
+        String token = account();
+        String id = create(token, "USD", next).get("id").asText();
+        String route = "/api/v1/subscriptions/" + id + "/exchange-rate-history";
+
+        mvc.perform(get(route).header("Authorization", token))
+                .andExpect(jsonPath("$.cycles[0].billingDate").value(oneCycleAgo.toString()))
+                .andExpect(jsonPath("$.cycles[0].amountUsd").value(10.0))
+                .andExpect(jsonPath("$.cycles[0].amountPen").value(37.0));
+
+        mvc.perform(patch("/api/v1/subscriptions/" + id).header("Authorization", token).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("amount", 20, "nextBillingDate", today.plusDays(20).toString()))))
+                .andExpect(status().isOk());
+
+        mvc.perform(get(route).header("Authorization", token))
+                .andExpect(jsonPath("$.amount").value(20.0))
+                .andExpect(jsonPath("$.cycles.length()").value(1))
+                .andExpect(jsonPath("$.cycles[0].billingDate").value(oneCycleAgo.toString()))
+                .andExpect(jsonPath("$.cycles[0].amountUsd").value(10.0))
+                .andExpect(jsonPath("$.cycles[0].amountPen").value(37.0));
+    }
+
+    @Test
+    void billingDatesFollowTheScheduleOfEachVersion() {
+        var terms = new pe.edu.upc.gastify.cravewallet.subscriptions.domain.services.SubscriptionTermsHistoryPort.Terms(
+                Instant.now(), BigDecimal.TEN, LocalDate.of(2026, 12, 15),
+                pe.edu.upc.gastify.cravewallet.subscriptions.domain.model.Subscription.BillingCycle.MONTHLY);
+        assertThat(pe.edu.upc.gastify.cravewallet.subscriptions.application.ConversionHistoryService
+                .billingDates(terms, LocalDate.of(2026, 9, 1), LocalDate.of(2027, 1, 20)))
+                .containsExactly(LocalDate.of(2026, 9, 15), LocalDate.of(2026, 10, 15), LocalDate.of(2026, 11, 15),
+                        LocalDate.of(2026, 12, 15), LocalDate.of(2027, 1, 15));
+    }
+
+    @Test
     void penSubscriptionsHaveNoConversionAndOtherOwnersGetNotFound() throws Exception {
         String owner = account(), other = account();
         String pen = create(owner, "PEN", LocalDate.now(LIMA).plusDays(5)).get("id").asText();
