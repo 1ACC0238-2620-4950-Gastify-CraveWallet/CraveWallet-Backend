@@ -8,4 +8,7 @@ public interface DeliveryExpenseRepository {
     Optional<DeliveryExpense> findByRequest(UUID owner, UUID request);
     void save(DeliveryExpense expense);
     List<DeliveryExpense> findPeriod(UUID owner, YearMonth period);
+    Optional<DeliveryExpense> findOwned(UUID owner, UUID id);
+    void update(DeliveryExpense expense);
+    void delete(DeliveryExpense expense);
 }
