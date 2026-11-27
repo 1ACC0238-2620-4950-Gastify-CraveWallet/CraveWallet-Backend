@@ -33,6 +33,13 @@ class BackendBootstrapTest {
                         .header("Access-Control-Request-Headers", "authorization"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", origin));
+        // US30: Flutter Web deletes a delivery expense, so DELETE must pass the preflight.
+        mockMvc.perform(options("/api/v1/delivery-expenses/" + java.util.UUID.randomUUID())
+                        .header("Origin", origin)
+                        .header("Access-Control-Request-Method", "DELETE")
+                        .header("Access-Control-Request-Headers", "authorization"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", origin));
         mockMvc.perform(get("/api/v1/users/me").header("Origin", origin))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("Access-Control-Allow-Origin", origin));
