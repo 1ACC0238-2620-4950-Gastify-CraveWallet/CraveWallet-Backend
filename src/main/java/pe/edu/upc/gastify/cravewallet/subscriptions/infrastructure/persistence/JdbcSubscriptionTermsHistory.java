@@ -15,10 +15,19 @@ public class JdbcSubscriptionTermsHistory implements SubscriptionTermsHistoryPor
     private final JdbcTemplate jdbc;
     public JdbcSubscriptionTermsHistory(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
+    /**
+     * Two changes can share the same clock reading (the system clock may tick only every few
+     * milliseconds), for example a create followed at once by an edit. The later terms replace the
+     * earlier ones at that instant instead of failing on the primary key.
+     */
     public void record(UUID subscriptionId, Terms terms) {
+        Timestamp effectiveFrom = Timestamp.from(terms.effectiveFrom().truncatedTo(ChronoUnit.MICROS));
+        int replaced = jdbc.update("update subscription_terms_history set amount = ?, next_billing_date = ?, billing_cycle = ? "
+                        + "where subscription_id = ? and effective_from = ?",
+                terms.amount(), Date.valueOf(terms.nextBillingDate()), terms.billingCycle().name(), subscriptionId, effectiveFrom);
+        if (replaced > 0) return;
         jdbc.update("insert into subscription_terms_history (subscription_id, effective_from, amount, next_billing_date, billing_cycle) "
-                        + "values (?, ?, ?, ?, ?)", subscriptionId,
-                Timestamp.from(terms.effectiveFrom().truncatedTo(ChronoUnit.MICROS)), terms.amount(),
+                        + "values (?, ?, ?, ?, ?)", subscriptionId, effectiveFrom, terms.amount(),
                 Date.valueOf(terms.nextBillingDate()), terms.billingCycle().name());
     }
 

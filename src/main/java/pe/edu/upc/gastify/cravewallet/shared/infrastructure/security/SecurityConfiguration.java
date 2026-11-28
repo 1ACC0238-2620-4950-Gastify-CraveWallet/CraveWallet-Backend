@@ -53,6 +53,7 @@ public class SecurityConfiguration {
                                 "/swagger-ui.html", "/swagger-ui/**").permitAll();
                     }
                     authorize.requestMatchers(HttpMethod.POST, "/api/v1/premium/webhook").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/api/v1/launch-subscribers").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/premium/status", "/api/v1/premium/payments").authenticated();
                     authorize.requestMatchers(HttpMethod.POST, "/api/v1/premium/checkout", "/api/v1/premium/cancel").authenticated();
                     authorize.anyRequest().denyAll();
@@ -73,7 +74,7 @@ public class SecurityConfiguration {
         }
         if (!flutterWebOrigin.isBlank()) origins.add(flutterWebOrigin);
         configuration.setAllowedOriginPatterns(origins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept-Language"));
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/v1/**", configuration);
